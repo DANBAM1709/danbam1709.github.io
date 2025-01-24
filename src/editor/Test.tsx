@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import {Link} from "react-router-dom";
 
 const Container = styled.div`
     /* 테스트용 css */
@@ -10,7 +11,10 @@ const Container = styled.div`
 `
 
 const Test = () => {
-    return (<Container contentEditable={true}>얍</Container>)
+    return (<>
+            <Container contentEditable={true}>얍</Container>
+            <Link to="/test" >Home</Link>
+    </>)
 }
 
 export default Test
