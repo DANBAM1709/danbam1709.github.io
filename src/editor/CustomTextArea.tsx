@@ -1,17 +1,16 @@
 import styled from 'styled-components';
-import {useState, useMemo, KeyboardEvent, useEffect} from "react";
-import {TextFormattingToolbar} from "./TextFormattingToolbar.tsx";
-import {eventManager} from "../shared/utils/event.ts";
-import { StyledComponent, dynamicStyles } from "../shared/mixins/dynamicStyle.ts";
+import {KeyboardEvent, ComponentPropsWithoutRef} from "react";
 
-const Container = styled.div<StyledComponent>`
+const Container = styled.div`
     /* 테스트용 css */
-    background-color: gray;
-    color: whitesmoke;
+    //background-color: gray;
+    //color: whitesmoke;
     font-size: 25px;
     //font-weight: bold;
     
     /* 실제 반영할 css  */
+    flex: 1;
+    min-width: 0; // 내부 콘텐츠가 넘쳐 길어지는 것을 방지함
     width: 100%;
     white-space: pre-wrap;
     display: inline-block; // block 의 경우 엔터 기본 이벤트 규칙이 다소 엉망임..
@@ -19,54 +18,9 @@ const Container = styled.div<StyledComponent>`
     &:focus {
         outline: none;
     }
-    
-    /* 동적 스타일 */
-    ${dynamicStyles} 
 `
 
-const CustomTextArea = (props: StyledComponent) => {
-    const [pos, setPos] = useState({x: 0, y: 0}) // 툴바 위치 조정
-    const [isSelected, setIsSelected] = useState(false) // 선택 영역이 있는지 확인
-
-    /* 선택 영역에 따라 툴바 위치 조정 */
-    useEffect(() => {
-        const selection = window.getSelection()
-
-        const handleSelectionChange = ()=> {
-            if (selection && !selection.isCollapsed) { // 선택 영역이 있는 경우
-                const range = selection.getRangeAt(0)
-                // const selectedText = selection.toString()
-
-                const rect = range.getClientRects()
-                const firstRect = rect[0]
-                const lastRect = rect[rect.length-1]
-
-                const topSpace = 40 // 선택 영역보다 올릴 위치 임시 위치
-                let [x, y] = [firstRect.left, firstRect.top-topSpace]
-
-                if (firstRect.top < topSpace && lastRect.bottom > 0) { // 선택 영역이 안보이는 위치부터 보이는 위치까지 있는 경우
-                    [x, y] = [0, 0]
-                }
-
-                setPos({x: x, y: y})
-                setIsSelected(true)
-            } else { // 선택 영역이 없는 경우
-                setIsSelected(false)
-            }
-        }
-
-        eventManager.addEventListener('selectionchange', 'CustomTextAreaSelect', handleSelectionChange)
-        eventManager.addEventListener('scroll', 'CustomTextAreaScroll', handleSelectionChange)
-        return () => eventManager.removeEventListener('scroll', 'CustomTextArea')
-    }, []);
-
-    const toolbarStyle= useMemo(() => { // 툴바 위치 조정
-        return `
-            left: ${pos.x}px;
-            top: ${pos.y}px; 
-            display: ${isSelected? 'block' : 'none'};
-        `
-    }, [pos, isSelected])
+const CustomTextArea = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => { // 키보드 이벤트
         if (e.key === 'Tab') { // Tab -> /t
@@ -85,13 +39,10 @@ const CustomTextArea = (props: StyledComponent) => {
     }
 
     return (
-        <>
-            <TextFormattingToolbar $customStyles={toolbarStyle} />
-            <Container contentEditable={true}
-                       onKeyDown={handleKeyDown}
-                       $customStyles={props.$customStyles}
-             />
-        </>
+        <Container contentEditable={true}
+                   onKeyDown={handleKeyDown}
+                   {...rest}
+        />
     )
 }
 
