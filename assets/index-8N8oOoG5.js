@@ -152,12 +152,10 @@ Please change the parent <Route path="${j}"> to <Route path="${j==="/"?"*":`${j}
     justify-content: center;
     width: 24px; 
     height: 24px; 
-    border-radius: 4px; 
-    pointer-events: auto;
+    border-radius: 4px;
     
     svg {
-        width: 16px; 
-        height: 100%; 
+        width: 16px;
         display: block;
         fill: rgba(55, 53, 47, 0.35);
     }
