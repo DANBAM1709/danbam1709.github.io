@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import {StyledComponent, dynamicStyles} from "../shared/mixins/dynamicStyle.ts";
+import {ComponentPropsWithoutRef} from "react";
 
 // 3 개 중 하나의 형태를 만족해야 한다
 type StyleDict =
@@ -7,14 +7,11 @@ type StyleDict =
     | { size: string }
     | { fontWeight: string };
 
-const Container = styled.div<StyledComponent>`
+const Container = styled.div`
     position: fixed;
     background: white;
     border-radius: 0.2rem;
     box-shadow: rgba(0, 0, 0, 0.07) 0 16px 24px 0, rgba(0, 0, 0, 0.1) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 0 1px 0;
-    
-    /* 동적 스타일 */
-    ${dynamicStyles}
 `
 
 const onClick = (style: StyleDict) => {
@@ -46,9 +43,9 @@ const onClick = (style: StyleDict) => {
     range?.insertNode(span)
 }
 
-export const TextFormattingToolbar = (props: StyledComponent) => {
+export const TextFormattingToolbar = ({...rest}: ComponentPropsWithoutRef<'div'> ) => {
     return (
-        <Container $customStyles={props.$customStyles}>
+        <Container {...rest}>
             <button onClick={()=>onClick({color: "blue"})}>색은 파란색으로</button>
             <button onClick={()=>onClick({color: "yellow"})}>색을 노란색으로</button>
             <button onClick={()=>onClick({fontWeight: "bold"})}>글자 weight를 결정합시다</button>
