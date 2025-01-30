@@ -3,10 +3,7 @@ import {KeyboardEvent, ComponentPropsWithoutRef} from "react";
 
 const Container = styled.div`
     /* 테스트용 css */
-    //background-color: gray;
-    //color: whitesmoke;
     font-size: 25px;
-    //font-weight: bold;
     
     /* 실제 반영할 css  */
     flex: 1;
