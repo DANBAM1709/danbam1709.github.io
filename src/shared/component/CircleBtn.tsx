@@ -41,11 +41,11 @@ const Container = styled.div`
 `
 
 interface Props extends ComponentPropsWithoutRef<'div'> {
-    icon: ReactNode,
+    icon?: ReactNode,
     label?: string
 }
 
-const ItemButton = ({icon, label, ...rest}: Props) => { // ...rest: 기본 html 속성만 전달
+const CircleBtn = ({icon, label, ...rest}: Props) => { // ...rest: 기본 html 속성만 전달
     return (<Container {...rest}>
         <div>
             {icon}
@@ -54,4 +54,4 @@ const ItemButton = ({icon, label, ...rest}: Props) => { // ...rest: 기본 html 
     </Container>)
 }
 
-export default ItemButton
+export default CircleBtn
