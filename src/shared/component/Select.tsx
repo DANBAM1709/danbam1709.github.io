@@ -2,7 +2,7 @@ import styled from "styled-components";
 import {
     ComponentPropsWithoutRef,
     createContext,
-    Dispatch,
+    Dispatch, forwardRef,
     MouseEvent,
     SetStateAction,
     useContext,
@@ -10,7 +10,7 @@ import {
     useMemo, useRef,
     useState
 } from "react";
-import SoftButton from "./SoftButton.tsx";
+import SoftBtn from "./SoftBtn.tsx";
 
 interface SelectContextType {
     open: boolean,
@@ -75,7 +75,7 @@ export const Select = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
     )
 }
 
-export const DropButton = ({children, ...rest}: ComponentPropsWithoutRef<'div'>) => {
+export const DropButton = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<"div">>(({children, ...rest}, ref) => {
     const {setOpen} = useContext(SelectContext)
 
     const onClick = () => {
@@ -89,13 +89,13 @@ export const DropButton = ({children, ...rest}: ComponentPropsWithoutRef<'div'>)
         fill: 'rgba(55, 53, 47, 0.35)',
         marginLeft: '4px'
     }
-    return (<SoftButton onClick={onClick} {...rest}>
+    return (<SoftBtn ref={ref} onClick={onClick} {...rest}>
         {children}
         <svg role="graphics-symbol" viewBox="0 0 30 30" style={svgStyle}>
             <polygon points="15,17.4 4.8,7 2,9.8 15,23 28,9.8 25.2,7 "></polygon>
         </svg>
-    </SoftButton>)
-}
+    </SoftBtn>)
+})
 
 export const Options = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
     const {open, setOpen} = useContext(SelectContext)
