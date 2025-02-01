@@ -25,8 +25,8 @@ const SelectContext = createContext<SelectContextType>({ // Context 내 전역 �
 const OptionsContainer = styled.div.attrs({ tabIndex: 0 })` // tabIndex: 0 -> focus ok    
     display: flex;
     flex-direction: column;
-    position: absolute;
     background: white;
+    position: absolute;
     top: 4px;
     opacity: 0;
     gap: 1px;
@@ -82,18 +82,9 @@ export const DropButton = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<"d
         setOpen(prev => !prev)
     }
 
-    const svgStyle = {
-        width: '10px',
-        height: '100%',
-        display: 'block',
-        fill: 'rgba(55, 53, 47, 0.35)',
-        marginLeft: '4px'
-    }
     return (<SoftBtn ref={ref} onClick={onClick} {...rest}>
         {children}
-        <svg role="graphics-symbol" viewBox="0 0 30 30" style={svgStyle}>
-            <polygon points="15,17.4 4.8,7 2,9.8 15,23 28,9.8 25.2,7 "></polygon>
-        </svg>
+        <img src={'chevron-down.svg'} alt={'chevron-down.svg'} width={'10px'} height={'100%'} style={{marginLeft: '4px'}} />
     </SoftBtn>)
 })
 
