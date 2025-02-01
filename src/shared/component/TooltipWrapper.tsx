@@ -23,11 +23,12 @@ const Tooltip = styled.div`
     border-radius: 5px;
     padding: 4px 6px;
     font-size: 14px;
+    white-space: pre-wrap; // 아래와 함께 쓰면 좋음
+    width: max-content; // 너비가 안의 내용물로 결정되도록 하기(글자 깨짐 방지)
     
     position: absolute;
     opacity: 0;
     z-index: -10;
-    white-space: nowrap;
 `
 
 interface Props extends PropsWithChildren<ComponentPropsWithoutRef<'div'>> {
