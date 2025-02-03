@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import {KeyboardEvent, ComponentPropsWithoutRef} from "react";
+import {KeyboardEvent, ComponentPropsWithoutRef, forwardRef} from "react";
 
 const Container = styled.div`
     flex: 1;
@@ -7,14 +7,20 @@ const Container = styled.div`
     width: 100%;
     white-space: pre-wrap;
     display: inline-block; // block 의 경우 엔터 기본 이벤트 규칙이 다소 엉망임..
-    margin-bottom: 4px; // 보류
+    outline: none !important;
+    border: none !important;
     
     &:focus {
         outline: none;
+        border: none;
     }
 `
 
-const CustomTextArea = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
+const CustomTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'>>(({...rest}, ref) => {
+    const handleInput = (e:KeyboardEvent<HTMLDivElement>) => { // 브라우저 기본 동작 전부 지웠을 때 <br> 만 남는 현상 방지
+        if (e.currentTarget.innerHTML === '<br>') e.currentTarget.innerHTML = ''
+    }
+
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => { // 키보드 이벤트
         if (e.key === 'Tab') { // Tab -> /t
             e.preventDefault()
@@ -32,11 +38,12 @@ const CustomTextArea = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
     }
 
     return (
-        <Container contentEditable={true}
-                   onKeyDown={handleKeyDown}
+        <Container ref={ref} tabIndex={0} contentEditable={true}
+                   onInput={handleInput} onKeyDown={handleKeyDown}
+                   suppressContentEditableWarning={true}
                    {...rest}
         />
     )
-}
+})
 
 export default CustomTextArea
