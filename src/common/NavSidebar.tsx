@@ -3,10 +3,17 @@ import styled from "styled-components";
 const Container = styled.div`
     height: 100vh;
     max-height: 100vh;
-    width: 240px;
-    box-shadow: rgba(0, 0, 0, 0.024) -1px 0 0 0 inset;
-    background: rgb(248, 248, 247);
-    z-index: 10;
+    width: var(--sidebar-width);
+    
+    & > div {
+        position: fixed;
+        height: 100vh;
+        max-height: 100vh;
+        width: var(--sidebar-width);
+        box-shadow: rgba(0, 0, 0, 0.024) -1px 0 0 0 inset;
+        background: rgb(248, 248, 247);
+        z-index: 10;
+    }
 `
 
 interface MenuBtnProps {
@@ -37,7 +44,7 @@ const MenuBtn = styled.div<MenuBtnProps>`
 `
 
 const NavSidebar = () => {
-    return (<Container>
+    return (<Container><div style={{position: 'fixed'}}>
         <MenuBtn>
             <img src={'search.svg'} alt={'search.svg'} width={'20px'} height={'20px'} />
             <span>검색</span>
@@ -46,7 +53,7 @@ const NavSidebar = () => {
             <img src={'search.svg'} alt={'search.svg'} width={'20px'} height={'20px'} />
             <span>검색</span>
         </MenuBtn>
-    </Container>)
+    </div></Container>)
 }
 
 export default NavSidebar
