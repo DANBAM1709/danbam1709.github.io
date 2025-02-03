@@ -25,10 +25,10 @@ const Tooltip = styled.div`
     font-size: 14px;
     white-space: pre-wrap; // 아래와 함께 쓰면 좋음
     width: max-content; // 너비가 안의 내용물로 결정되도록 하기(글자 깨짐 방지)
-    
     position: absolute;
     opacity: 0;
-    z-index: -10;
+    z-index: -1;
+    pointer-events: none;
 `
 
 interface Props extends PropsWithChildren<ComponentPropsWithoutRef<'div'>> {
@@ -51,7 +51,7 @@ const TooltipWrapper = ({children, html, summary, detail, ...rest}: Props) => {
             target.style.zIndex = '10'
         } else {
             target.style.opacity = '0'
-            target.style.zIndex = '-10'
+            target.style.zIndex = '-1'
         }
     }, [show]);
 
@@ -82,6 +82,7 @@ const TooltipWrapper = ({children, html, summary, detail, ...rest}: Props) => {
     const Component = cloneElement(children, {
         onMouseEnter: () => setShow(true),
         onMouseLeave: () => setShow(false),
+        onDragLeave: () => setShow(false),
         ref: componentRef,
         ...rest
     })
