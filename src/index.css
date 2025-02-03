@@ -13,7 +13,9 @@
   -moz-osx-font-smoothing: grayscale;
 
   --header-height: 44px;
-  --footer-height: 32px; // 임시
+  --sidebar-width: 240px;
+  --footer-height: 32px;
+  --content-width: 708px;
 }
 
 a {
@@ -73,4 +75,8 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+[contenteditable] {
+  cursor: text;
 }
