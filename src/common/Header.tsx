@@ -6,6 +6,7 @@ const Container = styled.div`
     user-select: none;
     position: fixed;
     height: var(--header-height);
+    width: calc(100% - var(--sidebar-width));
     display: flex;
     overflow-x: hidden;
     
