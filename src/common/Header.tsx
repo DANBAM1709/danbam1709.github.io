@@ -4,6 +4,7 @@ import TooltipWrapper from "../shared/component/TooltipWrapper.tsx";
 
 const Container = styled.div`
     user-select: none;
+    position: fixed;
     height: var(--header-height);
     display: flex;
     overflow-x: hidden;
