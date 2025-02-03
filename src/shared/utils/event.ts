@@ -40,7 +40,7 @@ export const eventManager = {
         const listenersSet = this.listeners.get(type);
         if (listenersSet) {
             listenersSet.forEach(({ callback }) => {
-                window.removeEventListener(type, callback);
+                document.removeEventListener(type, callback);
             });
             this.listeners.delete(type);
         }
