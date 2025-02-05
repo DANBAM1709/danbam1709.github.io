@@ -1,7 +1,6 @@
 import styled from "styled-components";
-import {ComponentPropsWithoutRef, ReactNode} from "react";
 
-const Container = styled.div`
+const CircleBtn = styled.div`
     display: flex;
     align-items: center;
     padding: 6px 14px 6px 10px;
@@ -22,36 +21,22 @@ const Container = styled.div`
         align-items: center;
         gap: 4px;
     }
-    svg, img {
-        width: 16px; 
-        height: 100%; 
-        display: block; 
-        fill: rgba(55, 53, 47, 0.85); 
-        flex-shrink: 0; 
-        margin: 0 2px;
-    }
-    .label {
-        font-size: 14px;
-        line-height: 20px; 
-        color: rgb(55, 53, 47); 
-        white-space: nowrap; 
-        overflow: hidden; 
-        text-overflow: ellipsis;
-    }
+    //svg, img {
+    //    width: 16px; 
+    //    height: 100%; 
+    //    display: block; 
+    //    fill: rgba(55, 53, 47, 0.85); 
+    //    flex-shrink: 0; 
+    //    margin: 0 2px;
+    //}
+    //.label {
+    //    font-size: 14px;
+    //    line-height: 20px; 
+    //    color: rgb(55, 53, 47); 
+    //    white-space: nowrap; 
+    //    overflow: hidden; 
+    //    text-overflow: ellipsis;
+    //}
 `
-
-interface Props extends ComponentPropsWithoutRef<'div'> {
-    icon?: ReactNode,
-    label?: string
-}
-
-const CircleBtn = ({icon, label, ...rest}: Props) => { // ...rest: 기본 html 속성만 전달
-    return (<Container {...rest}>
-        <div>
-            {icon}
-            {label? <div className={'label'}>{label}</div>: null}
-        </div>
-    </Container>)
-}
 
 export default CircleBtn

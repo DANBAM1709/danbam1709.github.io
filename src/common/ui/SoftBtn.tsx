@@ -1,7 +1,6 @@
 import styled from "styled-components";
-import {ComponentPropsWithoutRef, forwardRef} from "react";
 
-const Container = styled.div`
+const SoftBtn = styled.div`
     user-select: none; // 드래그 불가
     display: flex;
     font-size: 14px;
@@ -22,8 +21,8 @@ const Container = styled.div`
     }
 `
 
-const SoftBtn = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<"div">>(({...rest}, ref) => {
-    return (<Container ref={ref} {...rest} />)
-})
+// const SoftBtn = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<"div">>(({...rest}, ref) => {
+//     return (<Container ref={ref} {...rest} />)
+// })
 
 export default SoftBtn
