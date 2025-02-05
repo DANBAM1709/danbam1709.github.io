@@ -18,6 +18,7 @@ interface DragHandler {
     onDrop: (e?: MouseEvent<HTMLElement>)=>void
 }
 
+// dropTarget: 드롭 장소, onDragStart: 드롭 시작, onDragOver: 드롭 중, onDragOut: 드롭 영역 밖, onDrop: 드롭 완료
 const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragHandler): DropContextType => {
     const [isDrag, setIsDrag] = useState<boolean>(false)
     const [ghostSrc, setGhostSrc] = useState<string>('') // 고스트 이미지 캡쳐 src
