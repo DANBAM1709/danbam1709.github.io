@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import SoftBtn from "../shared/component/SoftBtn.tsx";
-import TooltipWrapper from "../shared/component/TooltipWrapper.tsx";
+import SoftBtn from "../shared/component/ui/SoftBtn.tsx";
+import TooltipWrapper from "../shared/component/ui/TooltipWrapper.tsx";
 
 const Container = styled.div`
     user-select: none;
