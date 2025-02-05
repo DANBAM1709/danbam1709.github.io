@@ -56,7 +56,6 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragH
 
     // DragOut
     const handlerDragOut = (e: MouseEvent<HTMLElement>) => {
-        e.stopPropagation()
         if (onDragOut) onDragOut(e)
         setGhostPosFunc(e)
     }
@@ -69,6 +68,7 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragH
     // Drop
     const handleDrop = (e?: MouseEvent<HTMLElement>) => {
         onDrop(e)
+        handlerDragOut(e!)
         handleDragEnd()
     }
 
