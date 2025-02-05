@@ -16,6 +16,7 @@
   --sidebar-width: 240px;
   --footer-height: 32px;
   --content-width: 708px;
+  --line-height: 1.5;
 }
 
 a {
@@ -79,4 +80,12 @@ button:focus-visible {
 
 [contenteditable] {
   cursor: text;
+}
+[contenteditable]:empty:after {
+  user-select: none;
+  content: attr(data-placeholder);
+  color: rgba(55, 53, 47, 0.15);
+}
+[contenteditable]:focus {
+  outline: none;
 }
