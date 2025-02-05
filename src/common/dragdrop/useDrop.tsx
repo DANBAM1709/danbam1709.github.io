@@ -7,8 +7,8 @@ import {
     useMemo,
     ComponentProps, ReactElement,
 } from "react";
-import {DropContextType} from "./DragDrop.tsx";
 import html2canvas from "html2canvas";
+import {DropContextType} from "./DropContext.tsx";
 
 interface DragHandler {
     dropTarget: MutableRefObject<HTMLElement|null>
