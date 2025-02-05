@@ -6,6 +6,7 @@ const Container = styled.div`
     min-width: 0; // flex: 1 일 때  내부 콘텐츠가 넘쳐 너비가 길어지는 것을 방지함
     width: 100%;
     white-space: pre-wrap;
+    word-break: break-word;
     display: inline-block; // block 의 경우 엔터 기본 이벤트 규칙이 다소 엉망임..
     outline: none !important;
     border: none !important;
