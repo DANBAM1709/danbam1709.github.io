@@ -8,25 +8,30 @@ import {
 } from "react";
 import {TextFormattingToolbar} from "../editor/TextFormattingToolbar.tsx";
 import {eventManager} from "../shared/utils/event.ts";
-import TooltipWrapper from "../shared/component/TooltipWrapper.tsx";
-import SoftBtn from "../shared/component/SoftBtn.tsx";
 import CustomTextArea from "../editor/CustomTextArea.tsx";
-import html2canvas from "html2canvas";
+import {Draggable, DropProvider, DropZone} from "../shared/component/dragdrop/DragDrop.tsx";
+import useDrop from "../shared/component/dragdrop/useDrop.tsx";
+import TooltipWrapper from "../shared/component/ui/TooltipWrapper.tsx";
+import SoftBtn from "../shared/component/ui/SoftBtn.tsx";
 
 // ---------------------------- ActionTool ----------------------------
 const ActionToolContainer = styled.div`
     position: relative;
     line-height: var(--line-height);
+    margin-bottom: 2px;
     
+    .action-wrapper {
+        position: absolute;
+        right: var(--content-width);
+        height: 100%;
+    }
     .action-group {
         display: flex;
         align-items: center;
-        position: absolute;
-        right: var(--content-width);
         height: calc(1em * var(--line-height));
         gap: 2px;
         padding-right: 10px;
-        padding-left: 10px
+        padding-left: 10px;
     }
     .plus-btn {
         width: 24px;
@@ -41,29 +46,39 @@ const ActionToolContainer = styled.div`
         height: 24px;
         padding: 0;
     }
-    
-    .ghost-img {
-        position: fixed;
-        top: -500px;
-        width: 300px;
-        object-fit: contain;
-    }
-    .dragover-area {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        z-index: 15;
-        //cursor: grabbing !important;
-        background: yellow;
-    }
     .drop-area {
         position: fixed;
         top: var(--header-height);
         left: var(--sidebar-width);
         right: 0; bottom: 0;
-        pointer-events: auto;
-        background: #747bff;
-        cursor: grabbing;
+        z-index: -1;
     }
+    .position {
+        height: 2px;
+    }
+    
+    //.ghost-img {
+    //    position: fixed;
+    //    top: -500px;
+    //    width: 300px;
+    //    object-fit: contain;
+    //}
+    //.dragover-area {
+    //    position: fixed;
+    //    top: 0; left: 0; right: 0; bottom: 0;
+    //    z-index: 15;
+    //    //cursor: grabbing !important;
+    //    background: yellow;
+    //}
+    //.drop-area {
+    //    position: fixed;
+    //    top: var(--header-height);
+    //    left: var(--sidebar-width);
+    //    right: 0; bottom: 0;
+    //    pointer-events: auto;
+    //    background: #747bff;
+    //    cursor: grabbing;
+    //}
     
     //
     //.action-btn-group {
@@ -114,134 +129,78 @@ const ActionToolContainer = styled.div`
     
 `
     // , editZoneRef: MutableRefObject<HTMLDivElement>
-const ActionToolWrapper = ({children}: {children: ReactElement}) => {
-    const contentRef = useRef<HTMLDivElement>(null) // 텍스트 영역
-    const [ghostUrl, setGhostUrl] = useState<string>('')
-    const [isDrag, setIsDrag] = useState<boolean>(false)
+const ActionToolWrapper = ({children, parentRef}: {children: ReactElement, parentRef: MutableRefObject<HTMLDivElement|null>}) => {
+    const [contentRef, moveRef] = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)] // 텍스트 영역, 이동할 영역
+    const [markers, setMarkers] = useState<number[]>([]) // index=0: title bottom 을 경계선으로 함
+    const [moveIndex, setMoveIndex] = useState<number>(-1) // 이동할 위치
 
-    // const getUrl = async () => { // 고스트 이미지를 위한 태그 캡쳐
-    //     const canvas = await html2canvas(contentRef.current!, {scale: 1})
-    //     return canvas.toDataURL()
-    // }
+    useEffect(() => { // 위치 이동 표시
+        console.log(moveIndex)
+        document.querySelectorAll('.position').forEach((el, index) => {
+            if (moveIndex-1 === index) {
+                el.classList.add('selected')
+            } else {
+                el.classList.remove('selected')
+            }
+        })
+    }, [moveIndex]);
 
-    const onDragStart = () => {
-        setIsDrag(true)
-    }
+    const handler = useDrop({
+        dropTarget: contentRef,
+        onDragStart: () => {
+            const parent = parentRef.current
+            if (!parent) return
+            const childrenArr = Array.from(parent.children)
+            const bottoms = childrenArr.map(content => content.getBoundingClientRect().bottom)
+            setMarkers(bottoms)
+        },
+        onDragOver: (e?: MouseEvent<HTMLElement>) => {
+            const threshold = e!.clientY
+            const filteredMarkers = markers.filter(marker => marker > threshold)
 
-    const onDragOver = (e: MouseEvent<HTMLDivElement>) => {
-        console.log(e.clientY)
-    }
+            let i = markers.length // 선택 인덱스
+            if (filteredMarkers.length > 0) { // 가장 끝
+                const closest = Math.min(...filteredMarkers)
+                i = markers.findIndex(marker => marker === closest) + 1
+            }
+            if (i !== moveIndex) {
+                setMoveIndex(i)
+            }
+        },
+        onDragOut: () => {
+            setMoveIndex(-1)
+        },
+        onDrop: () => {
+            const parent = parentRef.current
+            if (!parent) return
+            setMoveIndex(-1)
+            parent.insertBefore(moveRef.current!, parent.children[moveIndex])
+        }
+    })
 
-    const onDrop = (e:MouseEvent<HTMLDivElement>) => {
-        console.log('onDrop', e.clientY)
-    }
-
-
-    // const [isDrag, setIsDrag] = useState<boolean>(false)
-    // const [moveTargetRef, textAreaRef, copiedTextAreaRef] = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLImageElement>(null)]
-    // const [dataUrl, setDataUrl] = useState<string>('')
-    // const [markers, setMarkers] = useState<number[]>([]) // index=0: title bottom 을 경계선으로 함
-    // const [moveIndex, setMoveIndex] = useState<number>(-1) // 이동시킬 위치
-    //
-    //
-    // const getUrl = async () => { // 고스트 이미지를 위한 태그 캡쳐
-    //     const canvas = await html2canvas(textAreaRef.current!, {scale: 1})
-    //     return canvas.toDataURL()
-    // }
-    //
-    //
-    // const onMouseDown = () => { // 비동기 타이밍 문제 해결을 위함
-    //     // useEffect 에서는 부적절 위치와 이미지는 텍스트 수정에 따라 변하므로
-    //     getUrl().then(url => {
-    //         setDataUrl(url)
-    //     })
-    //     const parent = editZoneRef.current
-    //     const childrenArr = Array.from(parent.children)
-    //     const bottoms = childrenArr.map(textArea => textArea.getBoundingClientRect().bottom)
-    //     setMarkers(bottoms)
-    // }
-    //
-    // // 드래그 마우스 및 고스트 이미지 설정
-    // const onDragStart = (e: DragEvent<HTMLDivElement>) => {
-    //     // e.dataTransfer.effectAllowed = 'copy'; // 허용되는 효과 지정, 마우스
-    //     // e.dataTransfer.dropEffect = 'move'
-    //     e.dataTransfer.setDragImage(copiedTextAreaRef.current!, 0, 0) // 드래그시 뜨는 모양
-    //     setIsDrag(true)
-    // }
-    //
-    // // 드래그 영역이 위로 올라와 뜨는 금지 마우스 방지용
-    // const onDragEnter = (e: DragEvent<HTMLDivElement>) => {
-    //     e.preventDefault()
-    //     document.querySelectorAll<HTMLDivElement>('.action-btn-group').forEach((item: HTMLDivElement) => item.classList.add('hide'))
-    // }
-    //
-    // // 이동될 위치 조정 및 가시화를 위함
-    // const onDragOver = (e: DragEvent<HTMLDivElement>) => {
-    //     e.preventDefault()
-    //
-    //     const threshold = e.clientY
-    //     const filteredMarkers = markers.filter(marker => marker > threshold)
-    //
-    //     let i = markers.length // 선택 인덱스
-    //     if (filteredMarkers.length > 0) { // 가장 끝
-    //         const closest = Math.min(...filteredMarkers)
-    //         i = markers.findIndex(marker => marker === closest) + 1
-    //     }
-    //     if (i !== moveIndex) {
-    //         setMoveIndex(i)
-    //     }
-    // }
-    //
-    // // 드래그 시작 영역 다시 보일 수 있게 설정
-    // const onDragEnd = () => {
-    //     setIsDrag(false)
-    //     document.querySelectorAll<HTMLDivElement>('.action-btn-group').forEach((item: HTMLDivElement) => item.classList.remove('hide'))
-    // }
-    //
-    // // 위치 이동 확정
-    // const onDrop = (e: DragEvent<HTMLDivElement>) => {
-    //     e.preventDefault()
-    //     const parent = editZoneRef.current
-    //     parent.insertBefore(moveTargetRef.current!, parent.children[moveIndex])
-    // }
-
-    return (<ActionToolContainer>
-        {isDrag?
-            <div role={'none'} className={'dragover-area'} onMouseUp={()=>setIsDrag(false)} onMouseLeave={()=>setIsDrag(false)}> {/* onDragEnd == onMouseUp, 화면 밖 == onMouseLeave */}
-                <div role={'none'} className={'drop-area'} onMouseMove={onDragOver} onMouseUp={onDrop} /> {/* onDrop == onMouseUp */}
-            </div>:null}
-        <img className={'ghost-img'} src={ghostUrl} alt={'ghost-img'} />
-        <div className={'action-group'}>
-            <TooltipWrapper>
-                <SoftBtn className={'plus-btn'}>
-                    <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
-                </SoftBtn>
-            </TooltipWrapper>
-            <TooltipWrapper summary={'드래그해서 옮기기'} >
-                <SoftBtn className={'grab-btn'}  onMouseDown={onDragStart}>
-                    <img src={'grab.svg'} alt={'grab.svg'} width={'14px'} height={'14px'} />
-                </SoftBtn>
-            </TooltipWrapper>
+    return (<ActionToolContainer ref={moveRef}>
+        <div className={'position'} />
+        <div className={'action-wrapper'}>
+            <DropProvider useDrop={handler}>
+                <div className={'action-group'}>
+                    <DropZone>
+                        <div className={'drop-area'} />
+                    </DropZone>
+                    <TooltipWrapper>
+                        <SoftBtn className={'plus-btn'}>
+                            <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
+                        </SoftBtn>
+                    </TooltipWrapper>
+                    <Draggable>
+                        <TooltipWrapper summary={'드래그해서 옮기기'} >
+                            <SoftBtn className={'grab-btn'}>
+                                <img src={'grab.svg'} alt={'grab.svg'} width={'14px'} height={'14px'} />
+                            </SoftBtn>
+                        </TooltipWrapper>
+                    </Draggable>
+                </div>
+            </DropProvider>
         </div>
-
-        {/*<img className={'copied-textarea'} src={dataUrl} alt={'copied-textarea'} ref={copiedTextAreaRef} />*/}
-        {/*{isDrag? <div role={'none'} className={'grab-area'} onDragOver={onDragOver} onDrop={onDrop} style={{cursor: 'grabbing'}} />: null}*/}
-        {/*<div role={'none'} className={'action-btn-group'} onDragEnter={onDragEnter}>*/}
-        {/*    /!* + *!/*/}
-        {/*    <TooltipWrapper summary={'클릭해서 아래에 추가\n위에 블록을 추가하려면 alt+클릭'}>*/}
-        {/*        <SoftBtn className={'plus-btn'}>*/}
-        {/*            <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />*/}
-        {/*        </SoftBtn>*/}
-        {/*    </TooltipWrapper>*/}
-        {/*    <div className={'gab'}></div>*/}
-        {/*    /!* grab *!/*/}
-        {/*    <TooltipWrapper summary={'드래그해서 옮기기'}>*/}
-        {/*        <SoftBtn draggable={true} onDragStart={onDragStart} onDragEnd={onDragEnd} onMouseDown={onMouseDown} className={'grab-btn'}>*/}
-        {/*            <img src={'grab.svg'} alt={'grab.svg'} width={'14px'} height={'14px'} />*/}
-        {/*        </SoftBtn>*/}
-        {/*    </TooltipWrapper>*/}
-        {/*</div>*/}
-        {/*{cloneElement(children, {ref: textAreaRef})}*/}
         {cloneElement(children, {ref: contentRef})}
     </ActionToolContainer>)
 }
@@ -255,7 +214,6 @@ const CustomRichEditorContainer = styled.div`
         width: var(--content-width);
     }
     .title {
-        display: inline-block;
         font-size: 32px;
         margin-bottom: 8px;
     }
@@ -266,6 +224,7 @@ const CustomRichEditor = () => {
     const [toolbarPos, setToolbarPos] = useState({x: 0, y: 0}) // 툴바 위치 조정
     const [isSelected, setIsSelected] = useState<boolean>(false) // 선택 영역 O|X
     const isFocusedRef = useRef<boolean>(false) // useState는 addEventListener 등록시 값 변경 안됨
+    const contentsRef = useRef<HTMLDivElement|null>(null)
     const [contents, setContents] = useState<{id: string, content: ReactElement}[]>([])
 
     useEffect(() => {
@@ -305,7 +264,7 @@ const CustomRichEditor = () => {
             eventManager.removeEventListener('selectionchange', 'CustomRichEditor')
             eventManager.removeEventListener('scroll', 'CustomRichEditor')
         }
-    }, []);
+    }, [selection]);
 
     const toolbarStyle = useMemo(() => {
         return {
@@ -317,9 +276,9 @@ const CustomRichEditor = () => {
     return (
         <CustomRichEditorContainer>
             {isSelected? <TextFormattingToolbar style={toolbarStyle} />:null}
-            <div className={'edit-contents'}>
+            <div className={'edit-contents'} ref={contentsRef}>
                 <CustomTextArea className={'title'} data-placeholder={'제목'} />
-                {contents.map(m => <ActionToolWrapper key={m.id} >{cloneElement(m.content, {onFocus:()=>isFocusedRef.current=true, onBlur:()=>isFocusedRef.current=false})}</ActionToolWrapper>)}
+                {contents.map(m => <ActionToolWrapper parentRef={contentsRef} key={m.id} >{cloneElement(m.content, {onFocus:()=>isFocusedRef.current=true, onBlur:()=>isFocusedRef.current=false})}</ActionToolWrapper>)}
             </div>
         </CustomRichEditorContainer>
     )
