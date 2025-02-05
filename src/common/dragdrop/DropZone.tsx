@@ -1,55 +1,17 @@
-import {
-    cloneElement, ComponentPropsWithoutRef,
-    createContext, CSSProperties,
-    MouseEvent,
-    ReactElement, ReactNode,
-    useContext, useLayoutEffect, useMemo, useRef, useState,
-} from "react";
 import styled from "styled-components";
+import {
+    cloneElement,
+    CSSProperties,
+    MouseEvent,
+    ReactElement,
+    useContext,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState
+} from "react";
+import DropContext from "./DropContext.tsx";
 
-
-export interface DropContextType {
-    isDrag: boolean
-    GhostImage: (props?: ComponentPropsWithoutRef<'img'>) => ReactElement
-    handleDragStart: (e: MouseEvent<HTMLElement>)=>void
-    handleDragOver: (e: MouseEvent<HTMLElement>)=>void
-    handlerDragOut: (e: MouseEvent<HTMLElement>)=>void
-    handleDragEnd: (e: MouseEvent<HTMLElement>)=>void
-    handleDrop: (e: MouseEvent<HTMLElement>)=>void
-    handleWindowEnter: (e: MouseEvent<HTMLElement>)=>void
-}
-
-const DropContext =  createContext<DropContextType>({
-    isDrag: false,
-    GhostImage: () => <></>,
-    handleDragStart: () => {},
-    handleDragOver: () => {},
-    handlerDragOut: () => {},
-    handleDragEnd: () => {},
-    handleDrop: () => {},
-    handleWindowEnter: () => {},
-})
-
-// export type DropProviderProps = Omit<DragContextType, 'ghostSrc'|'setGhostSrc'>
-
-// --------------------- DropProvider ---------------------
-export const DropProvider = ({children, useDrop}: {children: ReactNode, useDrop: DropContextType}) => {
-
-    return(<DropContext.Provider value={useDrop} >{children}</DropContext.Provider>)
-}
-
-// --------------------- Draggable ---------------------
-const DraggableContainer = styled.div`
-    user-select: none;
-`
-
-export const Draggable = ({children}: {children: ReactElement}) => {
-    const {isDrag, handleDragStart} = useContext(DropContext)
-
-    return (<DraggableContainer style={{cursor: isDrag?'default':'grab'}}>{cloneElement(children, {onMouseDown: handleDragStart})}</DraggableContainer>)
-}
-
-// --------------------- DropZone ---------------------
 const DragOverArea = styled.div`
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -62,7 +24,7 @@ const DragOverArea = styled.div`
         object-fit: contain;
     }
 `
-export const DropZone = ({children}: {children: ReactElement}) => {
+const DropZone = ({children}: {children: ReactElement}) => {
     const {isDrag, GhostImage, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
     const childRef = useRef<HTMLElement>(null)
     const [cloneStyle, setCloneStyle] = useState<CSSProperties>({
@@ -98,7 +60,7 @@ export const DropZone = ({children}: {children: ReactElement}) => {
             onMouseMove: handleDragOver
         }
     }, [handleDragEnd, handleDragOver, handleDrop, handleWindowEnter])
-    
+
     return (<>
         {isDrag?
             <>
@@ -112,3 +74,4 @@ export const DropZone = ({children}: {children: ReactElement}) => {
     </>)
 }
 
+export default DropZone
