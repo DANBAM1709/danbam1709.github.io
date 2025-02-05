@@ -1,34 +1,40 @@
 import {
-    cloneElement,
-    createContext,
-    Dispatch,
+    cloneElement, ComponentPropsWithoutRef,
+    createContext, CSSProperties,
     MouseEvent,
-    ReactElement,
-    SetStateAction,
-    useContext, useMemo, useState,
+    ReactElement, ReactNode,
+    useContext, useLayoutEffect, useMemo, useRef, useState,
 } from "react";
 import styled from "styled-components";
 
 
-export interface DragContextType {
+export interface DropContextType {
     isDrag: boolean
-    setIsDrag: Dispatch<SetStateAction<boolean>>
-    handleDragStart: (e?: MouseEvent<HTMLElement>)=>void
-    handleDragOver: (e?: MouseEvent<HTMLElement>)=>void
-    handleDrop: (e?: MouseEvent<HTMLElement>)=>void
+    GhostImage: (props?: ComponentPropsWithoutRef<'img'>) => ReactElement
+    handleDragStart: (e: MouseEvent<HTMLElement>)=>void
+    handleDragOver: (e: MouseEvent<HTMLElement>)=>void
+    handleDragEnd: (e: MouseEvent<HTMLElement>)=>void
+    handleDrop: (e: MouseEvent<HTMLElement>)=>void
+    handleWindowEnter: (e: MouseEvent<HTMLElement>)=>void
 }
 
-const DragContext =  createContext<DragContextType>({
+const DropContext =  createContext<DropContextType>({
     isDrag: false,
-    setIsDrag: () => {},
+    GhostImage: () => <></>,
     handleDragStart: () => {},
     handleDragOver: () => {},
-    handleDrop: () => {}
+    handleDragEnd: () => {},
+    handleDrop: () => {},
+    handleWindowEnter: () => {},
 })
 
-// --------------------- DragProvider ---------------------
-export const DragProvider = ({children, ...handler}: {children: ReactElement} & DragContextType) => {
-    return(<DragContext.Provider value={handler} >{children}</DragContext.Provider>)
+// export type DropProviderProps = Omit<DragContextType, 'ghostSrc'|'setGhostSrc'>
+
+// --------------------- DropProvider ---------------------
+export const DropProvider = ({children, ...props}: {children: ReactNode} & DropContextType) => {
+    const value = useMemo(() => (props), [props])
+
+    return(<DropContext.Provider value={value} >{children}</DropContext.Provider>)
 }
 
 // --------------------- Draggable ---------------------
@@ -37,7 +43,7 @@ const DraggableContainer = styled.div`
 `
 
 export const Draggable = ({children}: {children: ReactElement}) => {
-    const {isDrag, handleDragStart} = useContext(DragContext)
+    const {isDrag, handleDragStart} = useContext(DropContext)
 
     return (<DraggableContainer style={{cursor: isDrag?'default':'grab'}}>{cloneElement(children, {onMouseDown: handleDragStart})}</DraggableContainer>)
 }
@@ -47,47 +53,61 @@ const DragOverArea = styled.div`
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 100;
-    background: yellow;
     cursor: move;
     user-select: none;
+    
+    .ghost-image {
+        opacity: 0.6;
+        object-fit: contain;
+    }
 `
 export const DropZone = ({children}: {children: ReactElement}) => {
-    const {isDrag, setIsDrag, handleDragOver, handleDrop} = useContext(DragContext)
-    const [ghostPos, setGhostPos] = useState<{x: number, y: number}>({x: 0, y: 0})
-    const ghostStyle = useMemo(() => {
+    const {isDrag, GhostImage, handleDragOver, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
+    const childRef = useRef<HTMLElement>(null)
+    const [cloneStyle, setCloneStyle] = useState<CSSProperties>({
+        opacity: 0, zIndex: 150, cursor: 'grabbing', ...(children.props.style || {})
+    })
+
+    useLayoutEffect(() => { // 마운트 직후
+        if (!childRef.current) return
+
+        if (window.getComputedStyle(childRef.current).position === 'static') {
+            setCloneStyle(pre => ({
+                ...pre,
+                position: 'absolute'
+            }))
+        }
+    }, []);
+
+    const onDragOver = useMemo(() => {
         return {
-            position: 'fixed',
-            top: ghostPos.y,
-            left: ghostPos.x,
-            transform: 'scale(0.6)',
-            transformOrigin: 'top left', // 축소 기준 위치
-            background: 'green',
-            pointEvents: 'none',
-            zIndex: 110,
+            onMouseEnter: handleWindowEnter,
+            onMouseUp: handleDragEnd,
+            onMouseMove: handleDragOver,
         }
-    }, [ghostPos])
+    }, [handleDragEnd, handleDragOver, handleWindowEnter])
 
-    const onDragEnd = () => {
-        setIsDrag(false)
-    }
-    const setGhostPosition = (e: MouseEvent<HTMLElement>) => {
-        setGhostPos({x: e.clientX+5, y: e.clientY+5})
-    }
-    const onMouseEnter = (e: MouseEvent<HTMLElement>) => {
-        if (isDrag && e.buttons === 0) { // 좌측 클릭 상태
-            setIsDrag(false)
-            return
+    const onDrop = useMemo(() => {
+        return {
+            onMouseEnter: handleWindowEnter,
+            onMouseUp: (e: MouseEvent<HTMLElement>) => {
+                handleDrop(e)
+                handleDragEnd(e)
+            },
+            onMouseMove: handleDragOver
         }
-        setGhostPos({x: e.clientX+5, y: e.clientY+5})
-    }
-
+    }, [handleDragEnd, handleDragOver, handleDrop, handleWindowEnter])
+    
     return (<>
         {isDrag?
-            <DragOverArea role={'none'} onMouseEnter={onMouseEnter} onMouseUp={onDragEnd} onMouseMove={setGhostPosition}> {/* onMouseMove: 고스트 이미지 좌표 계산, onMouseEnter: 화면 밖에서 들어올 때 */}
-                {cloneElement(children, {style: ghostStyle})}
-                {cloneElement(children, {style: {cursor: 'grabbing'}, onMouseMove: handleDragOver, onMouseUp: handleDrop})}
-            </DragOverArea>:
-            children}
+            <>
+                <DragOverArea role={'none'} {...onDragOver}> {/* onMouseMove: 고스트 이미지 좌표 계산, onMouseEnter: 화면 밖에서 들어올 때 */}
+                    <GhostImage className={'ghost-image'} />
+                </DragOverArea>
+                {cloneElement(children, {style: cloneStyle, ...onDrop})}
+            </>
+            : null}
+        {cloneElement(children, {ref: childRef})}
     </>)
 }
 
