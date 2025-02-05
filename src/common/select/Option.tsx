@@ -18,7 +18,7 @@ const OptionContainer = styled.div`
     }
 `
 
-export const Option = ({onClick, ...rest}: ComponentPropsWithoutRef<'div'>) => {
+export const Option = ({onClick, ...props}: ComponentPropsWithoutRef<'div'>) => {
     const {setOpen} = useContext(SelectContext)
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -26,5 +26,5 @@ export const Option = ({onClick, ...rest}: ComponentPropsWithoutRef<'div'>) => {
         if (onClick) onClick(e) // 상위 컴포넌트에서 정의한 onClick
     }
 
-    return (<OptionContainer onClick={handleClick} {...rest} />)
+    return (<OptionContainer onClick={handleClick} {...props} />)
 }

@@ -26,7 +26,8 @@ const Container = styled.div.attrs({ tabIndex: 0 })` // tabIndex: 0 -> focus ok
     }
 `
 
-const Options = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
+// <Options><Option /></Options>
+const Options = (props: ComponentPropsWithoutRef<'div'>) => {
     const {open, setOpen} = useContext(SelectContext)
     const target = useRef<HTMLDivElement>(null)
 
@@ -43,7 +44,7 @@ const Options = ({...rest}: ComponentPropsWithoutRef<'div'>) => {
     }, [open]);
 
     return (<div style={{position: 'relative'}}>
-        <Container ref={target} onBlur={()=>setOpen(false)} {...rest} />
+        <Container ref={target} onBlur={()=>setOpen(false)} {...props} />
     </div>)
 }
 
