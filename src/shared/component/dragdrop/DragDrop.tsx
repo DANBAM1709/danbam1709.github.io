@@ -86,7 +86,7 @@ export const DropZone = ({children}: {children: ReactElement}) => {
             onMouseUp: handleDragEnd,
             onMouseMove: handlerDragOut,
         }
-    }, [handleDragEnd, handleDragOver, handleWindowEnter])
+    }, [handleDragEnd, handleWindowEnter, handlerDragOut])
 
     const onDrop = useMemo(() => {
         return {
