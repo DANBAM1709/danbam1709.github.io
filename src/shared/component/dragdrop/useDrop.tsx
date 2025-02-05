@@ -14,10 +14,11 @@ interface DragHandler {
     dropTarget: MutableRefObject<HTMLElement|null>
     onDragStart: (e?: MouseEvent<HTMLElement>)=>void
     onDragOver?: (e?: MouseEvent<HTMLElement>)=>void
+    onDragOut?: (e?: MouseEvent<HTMLElement>)=>void
     onDrop: (e?: MouseEvent<HTMLElement>)=>void
 }
 
-const useDrop = ({dropTarget, onDragStart, onDragOver, onDrop}: DragHandler): DropContextType => {
+const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragHandler): DropContextType => {
     const [isDrag, setIsDrag] = useState<boolean>(false)
     const [ghostSrc, setGhostSrc] = useState<string>('') // 고스트 이미지 캡쳐 src
     const [ghostPos, setGhostPos] = useState<{x: number, y: number}>({x: 0, y: 0})
@@ -53,6 +54,13 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDrop}: DragHandler): Dr
         setGhostPosFunc(e)
     }
 
+    // DragOut
+    const handlerDragOut = (e: MouseEvent<HTMLElement>) => {
+        e.stopPropagation()
+        if (onDragOut) onDragOut(e)
+        setGhostPosFunc(e)
+    }
+
     // DragEnd
     const handleDragEnd = () => {
         setIsDrag(false)
@@ -78,7 +86,7 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDrop}: DragHandler): Dr
         return <img src={ghostSrc} style={ghostStyle} alt={'ghost-image'} {...props} />
     }
 
-    return {isDrag, GhostImage, handleDragStart, handleDragOver, handleDragEnd, handleDrop, handleWindowEnter}
+    return {isDrag, GhostImage, handleDragStart, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter}
 }
 
 export default useDrop;

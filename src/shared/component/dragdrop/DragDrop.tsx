@@ -13,6 +13,7 @@ export interface DropContextType {
     GhostImage: (props?: ComponentPropsWithoutRef<'img'>) => ReactElement
     handleDragStart: (e: MouseEvent<HTMLElement>)=>void
     handleDragOver: (e: MouseEvent<HTMLElement>)=>void
+    handlerDragOut: (e: MouseEvent<HTMLElement>)=>void
     handleDragEnd: (e: MouseEvent<HTMLElement>)=>void
     handleDrop: (e: MouseEvent<HTMLElement>)=>void
     handleWindowEnter: (e: MouseEvent<HTMLElement>)=>void
@@ -23,6 +24,7 @@ const DropContext =  createContext<DropContextType>({
     GhostImage: () => <></>,
     handleDragStart: () => {},
     handleDragOver: () => {},
+    handlerDragOut: () => {},
     handleDragEnd: () => {},
     handleDrop: () => {},
     handleWindowEnter: () => {},
@@ -31,10 +33,9 @@ const DropContext =  createContext<DropContextType>({
 // export type DropProviderProps = Omit<DragContextType, 'ghostSrc'|'setGhostSrc'>
 
 // --------------------- DropProvider ---------------------
-export const DropProvider = ({children, ...props}: {children: ReactNode} & DropContextType) => {
-    const value = useMemo(() => (props), [props])
+export const DropProvider = ({children, useDrop}: {children: ReactNode, useDrop: DropContextType}) => {
 
-    return(<DropContext.Provider value={value} >{children}</DropContext.Provider>)
+    return(<DropContext.Provider value={useDrop} >{children}</DropContext.Provider>)
 }
 
 // --------------------- Draggable ---------------------
@@ -62,7 +63,7 @@ const DragOverArea = styled.div`
     }
 `
 export const DropZone = ({children}: {children: ReactElement}) => {
-    const {isDrag, GhostImage, handleDragOver, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
+    const {isDrag, GhostImage, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
     const childRef = useRef<HTMLElement>(null)
     const [cloneStyle, setCloneStyle] = useState<CSSProperties>({
         opacity: 0, zIndex: 150, cursor: 'grabbing', ...(children.props.style || {})
@@ -83,7 +84,7 @@ export const DropZone = ({children}: {children: ReactElement}) => {
         return {
             onMouseEnter: handleWindowEnter,
             onMouseUp: handleDragEnd,
-            onMouseMove: handleDragOver,
+            onMouseMove: handlerDragOut,
         }
     }, [handleDragEnd, handleDragOver, handleWindowEnter])
 
