@@ -4,11 +4,11 @@ type ListenerEntry = { id: string; callback: EventListenerOrEventListenerObject 
 export const eventManager = {
     listeners: new Map<string, Set<ListenerEntry>>(),
 
-    addEventListener(type: string, id: string, listener: EventListenerOrEventListenerObject) {
+    addEventListener(type: string, name: string, listener: EventListenerOrEventListenerObject) {
         if (!this.listeners.has(type)) {
             this.listeners.set(type, new Set());
         }
-
+        const id = name + type
         const listenersSet = this.listeners.get(type)!;
 
         // 중복 방지: ID 기반으로 체크
@@ -20,9 +20,10 @@ export const eventManager = {
         }
     },
 
-    removeEventListener(type: string, id: string) {
+    removeEventListener(type: string, name: string) {
         const listenersSet = this.listeners.get(type);
         if (listenersSet) {
+            const id = name + type
             const entryToRemove = Array.from(listenersSet).find((entry) => entry.id === id);
 
             if (entryToRemove) {
