@@ -89,3 +89,7 @@ button:focus-visible {
 [contenteditable]:focus {
   outline: none;
 }
+
+.selected {
+  background: #2383e247;
+}
