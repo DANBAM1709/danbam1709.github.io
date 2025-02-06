@@ -3,7 +3,7 @@ import {
     useEffect,
     useMemo,
     useRef,
-    useState, ReactElement, cloneElement, CSSProperties
+    useState, ReactElement, cloneElement, CSSProperties, KeyboardEvent
 } from "react";
 import {TextFormattingToolbar} from "../editor/TextFormattingToolbar.tsx";
 import {eventManager} from "../utils/event.ts";
@@ -31,9 +31,10 @@ const CustomRichEditor = () => {
 
     useEffect(() => {
         setContents([ // 테스트 데이터
-            { id: 'test1', content: <CustomTextArea>순서가 3이 될 것이오</CustomTextArea>},
+            { id: 'test1', content: <CustomTextArea>순서가 <span className={'color-blue'}>3이 될</span> 것이오</CustomTextArea>},
             { id: 'test2', content: <CustomTextArea>순서가 1이 될것이오</CustomTextArea>},
             { id: 'test3', content: <CustomTextArea>지금은 순서가 2가 될것이오</CustomTextArea>},
+            { id: 'test4', content: <CustomTextArea />},
         ])
 
         const handleSelectionChange = () => { // 선택 영역에 따라 툴바 위치 조정
@@ -67,10 +68,76 @@ const CustomRichEditor = () => {
         }
     }, [selection]);
 
+    const handleEditor = { // CustomTextArea 이벤트
+        onFocus: () => isFocusedRef.current=true,
+        onBlur: () => isFocusedRef.current=false,
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+            const con = { // 조건 모음
+                empty: !e.currentTarget.firstChild, // 내용이 없다면
+                delete: e.key === 'Backspace'  && e.currentTarget.innerHTML === '<br>', // 블록 삭제
+                up: e.key === 'ArrowUp', // 블록 이동 위로
+                down: e.key === 'ArrowDown', // 블록 이동 아래로
+            }
+
+            // 첫 줄 텍스트 노드 방지
+            if (con.empty) {
+                const range = selection!.getRangeAt(0)
+                const div = document.createElement('div')
+                div.textContent = '\u200B'
+                e.currentTarget.appendChild(div)
+                range.selectNodeContents(div.firstChild!)
+                range.collapse(false) // 마지막 위치로 이동
+                return
+            }
+
+            // <- backspace && empty
+            if (con.delete) {
+                e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
+            }
+
+            // 방향키 Up
+            if (con.up) {
+                const range = selection!.getRangeAt(0)
+
+                const rangeTop = range.getBoundingClientRect().top
+                const top = e.currentTarget.getBoundingClientRect().top
+
+                const condition1 = rangeTop === 0 && !range.startContainer.previousSibling
+                const condition2 = rangeTop !== 0 && (rangeTop - top) < 5 // 커서와 끝의 오차 임의값 5
+
+                if (condition1 || condition2) {
+                    console.log(rangeTop, top)
+                }
+            }
+
+            // 방향키 Down
+            if (con.down) {
+                const range = selection!.getRangeAt(0)
+
+                const rangeBottom = range.getBoundingClientRect().bottom
+                const bottom = e.currentTarget.getBoundingClientRect().bottom
+
+                const condition1 = rangeBottom === 0 && !range.endContainer.nextSibling // 마지막 줄이면서 내용물 없을 때 Br 태그를 가리키며 rangeBottom=0 이 되므로
+                const condition2 = (bottom - rangeBottom) < 5 // 커서와 끝의 오차 임의값 5
+
+                if (condition1 || condition2) {
+                    console.log('아래로')
+                }
+            }
+        },
+    }
+
     return (
         <Container>
             <CustomTextArea className={'title'} data-placeholder={'제목'} />
-            {contents.map(m => <ActionToolWrapper key={m.id} >{cloneElement(m.content, {onFocus:()=>isFocusedRef.current=true, onBlur:()=>isFocusedRef.current=false})}</ActionToolWrapper>)}
+            {contents.map(m =>
+                <ActionToolWrapper key={m.id} >
+                    <>
+                        {cloneElement(m.content, handleEditor)}
+                        <div></div>
+                    </>
+                </ActionToolWrapper>
+            )}
             <TextFormattingToolbar style={toolbarStyle} />
         </Container>
     )
