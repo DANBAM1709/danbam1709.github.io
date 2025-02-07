@@ -58,7 +58,7 @@ const Option = styled.li`
 `
 
 /* ------------------------ Component ------------------------ */
-const CodeBlock = () => {
+const CodeStyle = () => {
     const selection = useRef<HTMLUListElement>(null)
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null)
     const options = ['html', 'css', 'javascript', 'python']
@@ -165,4 +165,4 @@ const CodeBlock = () => {
 
 }
 
-export default CodeBlock
+export default CodeStyle
