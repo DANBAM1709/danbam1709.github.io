@@ -90,6 +90,22 @@ button:focus-visible {
   outline: none;
 }
 
+.focus {
+  background: rgba(173, 216, 230, 0.1);
+}
+
 .selected {
   background: #2383e247;
+}
+
+
+/* 텍스트 색상 */
+.color-blue {
+  color: blue;
+}
+.color-yellow {
+  color: yellow;
+}
+.color-green {
+  color: green;
 }
