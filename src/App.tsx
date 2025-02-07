@@ -1,42 +1,12 @@
-import {BrowserRouter as Router, Routes, Route, useNavigate} from 'react-router-dom';
+import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import CustomRichEditor from "./layout/CustomRichEditor.tsx";
 import styled from "styled-components";
-import NavSidebar from "./common/NavSidebar.tsx";
-import Header from "./common/Header.tsx";
-import {ErrorBoundary, FallbackProps} from "react-error-boundary";
-import {CSSProperties} from "react";
-
-const errorStyle: CSSProperties = {
-    width: '100%',
-    height: 'calc(100vh - var(--footer-height))',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    flexDirection: 'column'
-}
-
-// 런타임 에러 처리용
-const ErrorFallback = ({error}: Readonly<FallbackProps>) => {
-    const navigate = useNavigate();
-
-    return (
-        <div style={errorStyle}>
-            <div>{error.message}</div> <br />
-            <button onClick={()=>navigate(-1)}>이전 페이지로 돌아가기</button>
-        </div>
-    );
-}
-
-const NotFound = () => {
-    const navigate = useNavigate();
-
-    return (
-        <div style={errorStyle}>
-            <div>404 NOT FOUND</div> <br />
-            <button onClick={()=>navigate(-1)}>이전 페이지로 돌아가기</button>
-        </div>
-    );
-}
+import Header from "./layout/Header.tsx";
+import {ErrorBoundary} from "react-error-boundary";
+import ErrorFallback from "./error/ErrorFallback.tsx";
+import NotFound from "./error/NotFound.tsx";
+import GlobalProvider from "./global/GlobalProvider.tsx";
+import NavSidebar from "./layout/NavSidebar.tsx";
 
 const Container = styled.div`
     display: flex;
@@ -44,31 +14,31 @@ const Container = styled.div`
     
     .content {
         min-height: calc(100vh - var(--footer-height));
-        //width: var(--content-width);
         margin: 0 auto;
         background: white;
+        padding: 0 50px;
     }
 `
 
 function App() {
 
-    return (<Container>
+    return (<GlobalProvider><Container>
         <NavSidebar />
         <div style={{flex: 1}}>
             <Header />
             <div className={'content'}>
-                    <Router>
+                <BrowserRouter>
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                         <Routes>
                             <Route path={"/"} element={<CustomRichEditor />} />
                             <Route path={'*'} element={<NotFound />} />
                         </Routes>
                         </ErrorBoundary>
-                    </Router>
+                </BrowserRouter>
             </div>
             <div style={{height: 'var(--footer-height)', background: 'gray'}}>푸터용</div>
         </div>
-    </Container>)
+    </Container></GlobalProvider>)
 }
 
 export default App
