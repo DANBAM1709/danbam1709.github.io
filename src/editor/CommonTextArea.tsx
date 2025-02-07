@@ -17,7 +17,7 @@ const Container = styled.div`
     }
 `
 
-const CustomTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'>>(({onBlur, onKeyDown, ...props}, ref) => {
+const CommonTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'>>(({onFocus, onBlur, onKeyDown, ...props}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
 
     const handler = {
@@ -37,7 +37,13 @@ const CustomTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'
 
             if (onKeyDown) onKeyDown(e)
         },
+        onFocus: (e: FocusEvent<HTMLDivElement>) => {
+            e.currentTarget.classList.add('focus')
+            if (onFocus) onFocus(e)
+        }
+        ,
         onBlur: (e: FocusEvent<HTMLDivElement>) => {  // 브라우저 기본 동작 전부 지웠을 때 <br> 만 남는 현상 방지
+            e.currentTarget.classList.remove('focus')
             // display: block 으로 변경 후 전체 지우면 완전 삭제됨 오히려 좋을지도?
             if (e.currentTarget.innerHTML === '<br>') e.currentTarget.innerHTML = ''
             if (onBlur) onBlur(e)
@@ -52,4 +58,4 @@ const CustomTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'
     )
 })
 
-export default CustomTextArea
+export default CommonTextArea
