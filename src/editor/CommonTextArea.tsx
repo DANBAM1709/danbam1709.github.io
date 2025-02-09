@@ -1,15 +1,15 @@
 import styled from 'styled-components';
-import {ComponentPropsWithoutRef, forwardRef, KeyboardEvent, FocusEvent, useMemo} from "react";
+import {ComponentPropsWithoutRef, FocusEvent, forwardRef, KeyboardEvent, useEffect, useState} from "react";
+import {useSelection} from "../hook.ts";
+import ContentEditable, {ContentEditableEvent} from "react-contenteditable";
 
-const Container = styled.div`
+const Container = styled(ContentEditable)`
     flex: 1;
     min-width: 0; // flex: 1 일 때  내부 콘텐츠가 넘쳐 너비가 길어지는 것을 방지함
     width: 100%;
     white-space: pre-wrap;
     word-break: break-word;
-    //display: inline-block; // block 의 경우 엔터 기본 이벤트 규칙이 다소 엉망임..
-    outline: none !important;
-    border: none !important;
+    display: inline-block; // block 의 경우 엔터 기본 이벤트 규칙이 다소 엉망임..
     
     &:focus {
         outline: none;
@@ -17,10 +17,19 @@ const Container = styled.div`
     }
 `
 
-const CommonTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'>>(({onFocus, onBlur, onKeyDown, ...props}, ref) => {
-    const selection = useMemo(() => window.getSelection(), [])
+const CommonTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'> & {children?: string}>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
+    const selection = useSelection()
+    const [html, setHtml] = useState<string>('')
+
+    useEffect(() => {
+        if (children) setHtml(children ?? '')
+    }, [children]);
 
     const handler = {
+        onChange: (e: ContentEditableEvent) => {
+            setHtml(e.target.value)
+            if (onChange) onChange(e)
+        },
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Tab') { // Tab -> /t
                 e.preventDefault()
@@ -51,8 +60,8 @@ const CommonTextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'
     }
 
     return (
-        <Container ref={ref} tabIndex={0} contentEditable={true}
-                   suppressContentEditableWarning={true}
+        <Container innerRef={ref ?? undefined} tabIndex={0} tagName={'div'}
+                   suppressContentEditableWarning={true} html={html}
                    {...handler} {...props}
         />
     )
