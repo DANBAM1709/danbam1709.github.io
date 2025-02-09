@@ -1,76 +1,135 @@
 import styled from "styled-components";
-import {
-    useEffect,
-    useMemo,
-    useRef,
-    useState, ReactElement, cloneElement, CSSProperties, KeyboardEvent
-} from "react";
-import {TextFormattingToolbar} from "../editor/TextFormattingToolbar.tsx";
-import {eventManager} from "../utils/event.ts";
-import CustomTextArea from "../editor/CustomTextArea.tsx";
-import ActionToolWrapper from "../editor/ActionToolWrapper.tsx";
+import {KeyboardEvent, MouseEvent, useEffect, useRef, useState} from "react";
+import CommonTextArea from "../editor/CommonTextArea.tsx";
+import EditorProvider from "../editor/EditorProvider.tsx";
+import {useSelection} from "../hook.ts";
+import SoftBtn from "../common/ui/SoftBtn.tsx";
+import TooltipWrapper from "../common/ui/TooltipWrapper.tsx";
+import TextToolbar from "../editor/TextToolbar.tsx";
+import {eventManager} from "../global/event.ts";
+import {cloneDeep} from 'lodash';
+import data from '../assets/resources/tooltip.json'
+
+
+// const StyledTextArea = forwardRef<HTMLDivElement, {style: string, children: ReactNode}>(({style, children, ...pops}, ref) => { // 텍스트 블록 스타일별 컴포넌트 정의
+//     switch (style) {
+//         case 'default': return <CommonTextArea ref={ref} {...pops}>{children}</CommonTextArea>;
+//         // case 'code': return <CodeStyle {...pops}>{children}</CodeStyle>;
+//     }
+// })
 
 const Container = styled.div`
+    position: relative;
+    min-height: 100vh;
     display: flex;
-    margin: 0 auto;
     flex-direction: column;
-    width: var(--content-width);
-    padding-top: calc(var(--header-height) + 80px);
     
+    .top {
+        display: flex;
+        justify-content: center;
+        padding-top: calc(var(--header-height) + 80px);
+        padding-bottom: 8px;
+    }
     .title {
         font-size: 32px;
-        margin-bottom: 8px;
+    }
+    .title, .content {
+        width: var(--content-width);
+        max-width: var(--content-width);
+        height: fit-content;
+    }
+    
+    .content-wrapper {
+        display: flex;
+    }
+    .content-wrapper:last-of-type {
+        flex: 1;
+    }
+    .content-wrapper:hover .action-tool {
+        opacity: 1;
+    }
+    .action-tool {
+        display: flex;
+        opacity: 0;
+        width: calc((100% - var(--content-width)) / 2);
+    }
+    .action-tool.left {
+        justify-content: flex-end;
+    }
+    .action-tool-group {
+        display: flex;
+        align-items: center;
+        height: calc(1em * var(--line-height));
+    }
+    .left .action-tool-group {
+        padding-right: 5px;
+    }
+    
+    .plus-btn {
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        margin-right: 2px;
     }
 `
 
-const CustomRichEditor = () => {
-    const selection = useMemo(() => window.getSelection(), [])
-    const [toolbarStyle, setToolbarStyle] = useState<CSSProperties>({left: 0, top: 0, display: 'none'}) // 툴바 위치 조정
-    const isFocusedRef = useRef<boolean>(false) // useState는 addEventListener 등록시 값 변경 안됨
-    const [contents, setContents] = useState<{id: string, content: ReactElement}[]>([])
+const CustomRichEditorContainer = () => {
+    const selection = useSelection()
+    const prevRef = useRef<HTMLDivElement[]>([]) // 새로운 Div focus 용도
+
+    const titleRef = useRef<HTMLDivElement>(null) // 제목
+    const [contents, setContents] = useState<{id: string, html: string, type: string}[]>([])
+    const contentsRef = useRef<HTMLDivElement[]>([]) // 현존 컴포넌트
+
+    const [isToolActive, setIsToolActive] = useState<boolean>(false) // true: 텍스트 스타일 툴바
+    const [saveTrigger, setSaveTrigger] = useState<boolean>(false) // true: 저장
+
+    useEffect(() => { // init
+        const save = (e: KeyboardEvent) => {
+            if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault()
+                setSaveTrigger(true)
+            }
+        }
+
+        eventManager.addEventListener('keydown', 'CustomRichEditor', save as unknown as EventListener)
+        return () => eventManager.removeEventListener('keydown', 'CustomRichEditor')
+    }, []);
 
     useEffect(() => {
-        setContents([ // 테스트 데이터
-            { id: 'test1', content: <CustomTextArea>순서가 <span className={'color-blue'}>3이 될</span> 것이오</CustomTextArea>},
-            { id: 'test2', content: <CustomTextArea>순서가 1이 될것이오</CustomTextArea>},
-            { id: 'test3', content: <CustomTextArea>지금은 순서가 2가 될것이오</CustomTextArea>},
-            { id: 'test4', content: <CustomTextArea />},
-        ])
-
-        const handleSelectionChange = () => { // 선택 영역에 따라 툴바 위치 조정
-            if(!isFocusedRef.current) return
-            if (!selection || selection.isCollapsed) { // 선택 영역이 없을 경우
-                setToolbarStyle({display: 'none'})
-                return
-            }
-
-            const range = selection.getRangeAt(0)
-            const rect = range.getClientRects()
-
-            const firstNode = rect[0]
-            const lastNode = rect[rect.length-1]
-
-            const topSpace = 40 // 선택 영역보다 올릴 위치 임시 위치
-            let [x, y] = [firstNode.left, firstNode.top-topSpace]
-
-            if (firstNode.top < topSpace && lastNode.bottom > 0) { // 선택 영역이 안보이는 위치부터 보이는 위치까지 있는 경우
-                [x, y] = [0, 0]
-            }
-            setToolbarStyle({left: x, top: y, display: 'block'})
+        if(contents.length === 0) { // contents 가 전부 지워질 경우
+            setContents([{id: `${crypto.randomUUID()}`, html: '', type: 'default'}])
         }
 
-        eventManager.addEventListener('selectionchange', 'CustomRichEditor', handleSelectionChange)
-        eventManager.addEventListener('scroll', 'CustomRichEditor', handleSelectionChange)
+        const prev = prevRef.current
+        const current = contentsRef.current
 
-        return () => {
-            eventManager.removeEventListener('selectionchange', 'CustomRichEditor')
-            eventManager.removeEventListener('scroll', 'CustomRichEditor')
+        const newRef = current.filter(obj1 => !prev.some(obj2 => obj2.id === obj1.id)).slice(-1)[0]
+
+        if (newRef) newRef.focus()
+        prevRef.current = cloneDeep(contentsRef.current)
+
+        const firstRender = (current.length === 1) && (current[0].innerHTML === '') && (titleRef.current?.innerHTML === '')
+        if (firstRender) {
+            titleRef.current?.focus()
         }
-    }, [selection]);
+    }, [contents]);
 
-    const handleEditor = { // CustomTextArea 이벤트
-        onFocus: () => isFocusedRef.current=true,
-        onBlur: () => isFocusedRef.current=false,
+    useEffect(() => { // 저장
+        if (!saveTrigger) return
+        const saveContents = contentsRef.current.map((el, index) => ({id: el.id, html: el.innerHTML, type: contents[index].type}));
+        setContents(saveContents)
+        setSaveTrigger(false)
+    }, [contents, saveTrigger]);
+
+    const handleBlock = {
+        onClick: (e: MouseEvent<HTMLDivElement>) => {
+            const editableEl = e.currentTarget.querySelector('[contenteditable]')
+            if (editableEl) (editableEl as HTMLElement).focus()
+        }
+    }
+
+    const handleContent = {
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             const con = { // 조건 모음
                 empty: !e.currentTarget.firstChild, // 내용이 없다면
@@ -79,40 +138,52 @@ const CustomRichEditor = () => {
                 down: e.key === 'ArrowDown', // 블록 이동 아래로
             }
 
-            // 첫 줄 텍스트 노드 방지
+            // 첫 줄 텍스트 노드 방지 안되고 있는 듯?
             if (con.empty) {
-                const range = selection!.getRangeAt(0)
-                const div = document.createElement('div')
-                div.textContent = '\u200B'
-                e.currentTarget.appendChild(div)
-                range.selectNodeContents(div.firstChild!)
-                range.collapse(false) // 마지막 위치로 이동
-                return
+                // console.log(e.currentTarget.firstChild)
+                // const range = selection!.getRangeAt(0)
+                // const div = document.createElement('div')
+                // div.textContent = '\u200B'
+                // e.currentTarget.appendChild(div)
+                // range.selectNodeContents(div.firstChild!)
+                // range.collapse(false) // 마지막 위치로 이동
             }
 
             // <- backspace && empty
             if (con.delete) {
-                e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
+                console.log('삭제')
+                // e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
             }
 
             // 방향키 Up
             if (con.up) {
-                const range = selection!.getRangeAt(0)
+                if (!selection) { // empty
+                    console.log('위로')
+                    return
+                }
+                const range = selection.getRangeAt(0)
 
                 const rangeTop = range.getBoundingClientRect().top
                 const top = e.currentTarget.getBoundingClientRect().top
 
-                const condition1 = rangeTop === 0 && !range.startContainer.previousSibling
+                const prev = range.startContainer.previousSibling
+
+                const empty = !prev || (e.currentTarget === range.startContainer)
+                const condition1 = rangeTop === 0 && empty;
                 const condition2 = rangeTop !== 0 && (rangeTop - top) < 5 // 커서와 끝의 오차 임의값 5
 
                 if (condition1 || condition2) {
-                    console.log(rangeTop, top)
+                    console.log('위로')
                 }
             }
 
             // 방향키 Down
             if (con.down) {
-                const range = selection!.getRangeAt(0)
+                if (!selection) { // empty
+                    console.log('아래로')
+                    return
+                }
+                const range = selection.getRangeAt(0)
 
                 const rangeBottom = range.getBoundingClientRect().bottom
                 const bottom = e.currentTarget.getBoundingClientRect().bottom
@@ -124,23 +195,45 @@ const CustomRichEditor = () => {
                     console.log('아래로')
                 }
             }
+
         },
+        onFocus: () => setIsToolActive(true),
+        onBlur: () => setIsToolActive(false),
     }
 
-    return (
-        <Container>
-            <CustomTextArea className={'title'} data-placeholder={'제목'} />
-            {contents.map(m =>
-                <ActionToolWrapper key={m.id} >
-                    <>
-                        {cloneElement(m.content, handleEditor)}
-                        <div></div>
-                    </>
-                </ActionToolWrapper>
-            )}
-            <TextFormattingToolbar style={toolbarStyle} />
-        </Container>
-    )
+    const handleAddContent  = (index: number) => ({
+        onClick: (e: MouseEvent<HTMLDivElement>) => {
+            e.stopPropagation()
+            const newContent = {id: `${crypto.randomUUID()}`, html: '', type: 'default'}
+            let addIndex = index+1
+            if (e.ctrlKey || e.metaKey) { // 이전 추가 윈도우 ctrl, 맥 meta 이전에 삽입된 경우
+                addIndex = index
+            }
+            // 다음 추가? 흠... 추가를 한 다음에 그 블럭 뜨게 할까? 고민이네
+            setContents(pre => [...pre.slice(0, addIndex), newContent, ...pre.slice(addIndex)])
+        }
+    })
+
+    return (<Container>
+        <div className={'top'} {...handleBlock}><CommonTextArea ref={titleRef} className={'title'} data-placeholder={'제목'} /></div>
+        {contents.map((content, index) => (
+            <div className={'content-wrapper'} key={content.id}{...handleBlock}>
+                <div className={'action-tool left'}>
+                    <div className={'action-tool-group'}>
+                        <TooltipWrapper summary={data.addContent}>
+                            <SoftBtn className={'plus-btn'} {...handleAddContent(index)}>
+                                <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
+                            </SoftBtn>
+                        </TooltipWrapper>
+                    </div>
+                </div>
+                <CommonTextArea id={content.id}  ref={el => {if (el) contentsRef.current[index] = el}} className={'content'} {...handleContent}>{content.html}</CommonTextArea>
+            </div>
+        ))}
+        {isToolActive? <TextToolbar />:null}
+    </Container>)
 }
+
+const CustomRichEditor = () => (<EditorProvider><CustomRichEditorContainer /></EditorProvider>)
 
 export default CustomRichEditor
