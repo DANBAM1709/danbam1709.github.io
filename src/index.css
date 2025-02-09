@@ -17,6 +17,9 @@
   --footer-height: 32px;
   --content-width: 708px;
   --line-height: 1.5;
+
+  /* 리치 에디터 */
+  --editor-padding-top: calc(var(--header-height) + 80px);
 }
 
 a {
