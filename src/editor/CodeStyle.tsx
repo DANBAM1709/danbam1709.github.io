@@ -58,7 +58,7 @@ const Option = styled.li`
 `
 
 /* ------------------------ Component ------------------------ */
-const CodeStyle = () => {
+const CodeStyle = ({children}: {children: string}) => {
     const selection = useRef<HTMLUListElement>(null)
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null)
     const options = ['html', 'css', 'javascript', 'python']
@@ -156,7 +156,7 @@ const CodeStyle = () => {
         <Editor
             language={selectOption}
             height={editorHeight}
-            // defaultValue={code} // 초기 코드 설정
+            defaultValue={children} // 초기 코드 설정
             theme={"transparentTheme"}
             onMount={onMount}
             options = {editorOptions}
