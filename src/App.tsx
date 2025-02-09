@@ -12,8 +12,8 @@ const Container = styled.div`
     display: flex;
     min-height: 100vh;
     
-    .content {
-        min-height: calc(100vh - var(--footer-height));
+    .layout-contents {
+        min-height: 100vh;
         margin: 0 auto;
         background: white;
         padding: 0 50px;
@@ -26,7 +26,7 @@ function App() {
         <NavSidebar />
         <div style={{flex: 1}}>
             <Header />
-            <div className={'content'}>
+            <div className={'layout-contents'}>
                 <BrowserRouter>
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                         <Routes>
@@ -36,7 +36,6 @@ function App() {
                         </ErrorBoundary>
                 </BrowserRouter>
             </div>
-            <div style={{height: 'var(--footer-height)', background: 'gray'}}>푸터용</div>
         </div>
     </Container></GlobalProvider>)
 }
