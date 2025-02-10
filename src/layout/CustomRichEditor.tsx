@@ -1,22 +1,18 @@
 import styled from "styled-components";
-import {KeyboardEvent, MouseEvent, useEffect, useRef, useState} from "react";
+import {KeyboardEvent, MouseEvent, useEffect, useMemo, useRef, useState} from "react";
 import CommonTextArea from "../editor/CommonTextArea.tsx";
 import EditorProvider from "../editor/EditorProvider.tsx";
-import {useSelection} from "../hook.ts";
+import {useSelection, useTooltip} from "../global/hook.ts";
 import SoftBtn from "../common/ui/SoftBtn.tsx";
 import TooltipWrapper from "../common/ui/TooltipWrapper.tsx";
 import TextToolbar from "../editor/TextToolbar.tsx";
 import {eventManager} from "../global/event.ts";
 import {cloneDeep} from 'lodash';
-import data from '../assets/resources/tooltip.json'
-
-
-// const StyledTextArea = forwardRef<HTMLDivElement, {style: string, children: ReactNode}>(({style, children, ...pops}, ref) => { // 텍스트 블록 스타일별 컴포넌트 정의
-//     switch (style) {
-//         case 'default': return <CommonTextArea ref={ref} {...pops}>{children}</CommonTextArea>;
-//         // case 'code': return <CodeStyle {...pops}>{children}</CodeStyle>;
-//     }
-// })
+import Select from "../common/select/Select.tsx";
+import DropButton from "../common/select/DropButton.tsx";
+import Options from "../common/select/Options.tsx";
+import Option from "../common/select/Option.tsx";
+import SelectStyled from "../editor/SelectStyled.tsx";
 
 const Container = styled.div`
     position: relative;
@@ -74,11 +70,13 @@ const Container = styled.div`
 `
 
 const CustomRichEditorContainer = () => {
+    const tooltip = useTooltip()
     const selection = useSelection()
-    const prevRef = useRef<HTMLDivElement[]>([]) // 새로운 Div focus 용도
+
+    const prevRef = useRef<HTMLDivElement[]>([]) // 새로운 Content 추가시 focus 용도
 
     const titleRef = useRef<HTMLDivElement>(null) // 제목
-    const [contents, setContents] = useState<{id: string, html: string, type: string}[]>([])
+    const [contents, setContents] = useState<{id: string, html: string, type: string}[]>([]) // 텍스트 블록
     const contentsRef = useRef<HTMLDivElement[]>([]) // 현존 컴포넌트
 
     const [isToolActive, setIsToolActive] = useState<boolean>(false) // true: 텍스트 스타일 툴바
@@ -105,14 +103,15 @@ const CustomRichEditorContainer = () => {
         const current = contentsRef.current
 
         const newRef = current.filter(obj1 => !prev.some(obj2 => obj2.id === obj1.id)).slice(-1)[0]
-
-        if (newRef) newRef.focus()
         prevRef.current = cloneDeep(contentsRef.current)
 
         const firstRender = (current.length === 1) && (current[0].innerHTML === '') && (titleRef.current?.innerHTML === '')
-        if (firstRender) {
+        if (firstRender) { // 제목 포커싱
             titleRef.current?.focus()
+            return
         }
+
+        if (newRef) newRef.focus()
     }, [contents]);
 
     useEffect(() => { // 저장
@@ -201,10 +200,10 @@ const CustomRichEditorContainer = () => {
         onBlur: () => setIsToolActive(false),
     }
 
-    const handleAddContent  = (index: number) => ({
+    const handleAddContent  = (index: number, type: string) => ({
         onClick: (e: MouseEvent<HTMLDivElement>) => {
             e.stopPropagation()
-            const newContent = {id: `${crypto.randomUUID()}`, html: '', type: 'default'}
+            const newContent = {id: `${crypto.randomUUID()}`, html: '', type: type}
             let addIndex = index+1
             if (e.ctrlKey || e.metaKey) { // 이전 추가 윈도우 ctrl, 맥 meta 이전에 삽입된 경우
                 addIndex = index
@@ -220,14 +219,19 @@ const CustomRichEditorContainer = () => {
             <div className={'content-wrapper'} key={content.id}{...handleBlock}>
                 <div className={'action-tool left'}>
                     <div className={'action-tool-group'}>
-                        <TooltipWrapper summary={data.addContent}>
-                            <SoftBtn className={'plus-btn'} {...handleAddContent(index)}>
-                                <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
-                            </SoftBtn>
-                        </TooltipWrapper>
+                            <Select>
+                                <DropButton><TooltipWrapper summary={tooltip.plusContent}><SoftBtn className={'plus-btn'}>
+                                        <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
+                                </SoftBtn></TooltipWrapper></DropButton>
+                                <Options>
+                                    <Option {...handleAddContent(index, 'default')}>기본</Option>
+                                    <Option {...handleAddContent(index, 'code')}>코드스타일</Option>
+                                </Options>
+                            </Select>
                     </div>
                 </div>
-                <CommonTextArea id={content.id}  ref={el => {if (el) contentsRef.current[index] = el}} className={'content'} {...handleContent}>{content.html}</CommonTextArea>
+                <SelectStyled id={content.id} type={content.type} className={'content'} ref={el => {if (el) contentsRef.current[index] = el}} {...handleContent}>{content.html}</SelectStyled>
+                {/*<CommonTextArea id={content.id}  ref={el => {if (el) contentsRef.current[index] = el}} className={'content'} {...handleContent}>{content.html}</CommonTextArea>*/}
             </div>
         ))}
         {isToolActive? <TextToolbar />:null}
