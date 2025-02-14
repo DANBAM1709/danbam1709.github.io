@@ -1,5 +1,5 @@
 import {ComponentPropsWithoutRef, useMemo, useState} from "react";
-import SelectContext from "./SelectContext.tsx";
+import SelectContext from "./SelectContext.ts";
 
 // <Select><DropButton /><Options><Option /></Options></Select>
 const Select = (props: ComponentPropsWithoutRef<'div'>) => {

@@ -18,7 +18,7 @@ const OptionContainer = styled.div`
     }
 `
 
-export const Option = ({onClick, ...props}: ComponentPropsWithoutRef<'div'>) => {
+const Option = ({onClick, ...props}: ComponentPropsWithoutRef<'div'>) => {
     const {setOpen} = useContext(SelectContext)
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -28,3 +28,5 @@ export const Option = ({onClick, ...props}: ComponentPropsWithoutRef<'div'>) => 
 
     return (<OptionContainer onClick={handleClick} {...props} />)
 }
+
+export default Option

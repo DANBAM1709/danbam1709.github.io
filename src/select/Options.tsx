@@ -37,9 +37,11 @@ const Options = (props: ComponentPropsWithoutRef<'div'>) => {
             target.current.focus()
             target.current.style.opacity = '1'
             target.current.style.zIndex = '10'
+            target.current.style.pointerEvents = 'auto'
         } else {
             target.current.style.opacity = '0'
             target.current.style.zIndex = '-10'
+            target.current.style.pointerEvents = 'none'
         }
     }, [open]);
 
