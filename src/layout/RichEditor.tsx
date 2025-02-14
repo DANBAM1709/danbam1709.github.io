@@ -1,65 +1,71 @@
 import styled from "styled-components";
-import MainContainer from "../common/base/MainContainer.tsx";
-import Section from "../common/base/Section.tsx";
+import MainContainer from "../base/MainContainer.tsx";
+import Section from "../base/Section.tsx";
 import Plus from '../assets/svg/plus.svg?react'
-import ChevronDown from '../assets/svg/chevron-down.svg?react'
 import Grab from '../assets/svg/grab.svg?react'
-import {ActionTool, ActionButton, Card, CardDivider, DragButton, CardItem, DraggableCard} from "../editor/EditorUI.ts";
-import Tooltip from "../common/common/Tooltip.tsx";
-import {useRef} from "react";
+import {ActionTool, Card, CardDivider, DragButton, DraggableCard, PlusButton, Title} from "../editor/EditorUI.ts";
+import {MouseEvent, useEffect, useRef, useState} from "react";
+import TooltipWithComponent from "../common/TooltipWithComponent.tsx";
 
 const Container = styled(MainContainer)`
-    ${Card} {
+    ${Card}, ${CardDivider} {
         min-width: var(--content-width);
         width: var(--content-width);
     }
-    ${DragButton} {
-        opacity: 0;
-        width: 18px;
-        margin-right: 10px;
+    ${CardDivider} {
+        margin: 5px 0;    
+    }
+    ${ActionTool} {
+        width: 55px;
     }
     ${DraggableCard} {
-        margin-right: 28px;
-    }
-    ${DragButton}:focus-within,
-    ${DraggableCard}:hover ${DragButton},
-    ${DraggableCard}:has(${Card}:focus-within) ${DragButton}{
-        opacity: 1;
-    }
-
-    ${DragButton}:focus-within + ${Card},
-    ${Card}:focus-within {
-        background: rgba(173, 216, 230, 0.1);
-    }
-    
-    ${CardDivider} {
-        opacity: 0;
-    }
-    ${CardDivider}:hover, 
-    ${DraggableCard}:hover + ${CardDivider} {
-        opacity: 1;
+        margin-right: 55px;
     }
 `
 
+type DataType = {[key: string]: string | string[] }| string
+
 
 const RichEditor = () => {
-    const testRef = useRef<HTMLDivElement>(null)
+    const titleRef = useRef<HTMLDivElement>(null)
+    const [cards, setCards] = useState<{id: string, type: string, data: DataType}[]>([])
+
+    useEffect(() => {
+        setCards([
+            {id: crypto.randomUUID(), type: 'default', data: '와우'},
+            {id: crypto.randomUUID(), type: 'default', data: '와우'},
+        ])
+    }, []);
+
+    const handleAddCard = (index: number) => ({
+        onClick: (e: MouseEvent<HTMLDivElement>) => {
+            console.log(index)
+        }
+    })
 
     return (<Container>
+        {/* 제목 */}
         <Section>
-            <DraggableCard>
-                <DragButton ref={testRef}><Grab width={'16px'} height={'16px'} /></DragButton>
-                <Card>
-                    <CardItem>이것은 카드에 들어갈 요소임당</CardItem>
-                    흐잉?
-                </Card>
-            </DraggableCard>
-            <CardDivider><ActionTool>
-                    <ActionButton><Plus width={'20px'} height={'20px'} /></ActionButton>
-                    <ActionButton><ChevronDown width={'12px'} height={'12px'} /></ActionButton>
-            </ActionTool></CardDivider>
-            <Tooltip componentRef={testRef}>테스트용도용</Tooltip>
+            <Card><Title ref={titleRef} data-placeholder={'제목'}></Title></Card>
+            <CardDivider />
         </Section>
+        {cards.map(card => {
+            return (<Section key={card.id}>
+                <DraggableCard>
+                    <ActionTool>
+                        {/*<TooltipWithComponent Component={<PlusButton><Plus width={'16px'} height={'16px'} /></PlusButton>} summary={'쓰읍'} />*/}
+                        <TooltipWithComponent Component={<DragButton><Grab width={'16px'} height={'16px'} /></DragButton>} summary={'쓰읍'} />
+                    </ActionTool>
+                    <Card>
+                        여기에 들어갈 것은?
+                    </Card>
+                </DraggableCard>
+                <div style={{display: 'flex', alignItems: 'center'}}>
+                    <TooltipWithComponent Component={<PlusButton><Plus width={'10px'} height={'10px'} /></PlusButton>} summary={'쓰읍'} />
+                    {/*<CardDivider />*/}
+                </div>
+            </Section>)
+        })}
     </Container>)
 }
 
