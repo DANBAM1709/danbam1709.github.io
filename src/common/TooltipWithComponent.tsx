@@ -4,6 +4,7 @@ import {usePopper} from "react-popper";
 
 // 스타일
 const Tooltip = styled.div`
+    position: fixed;
     background: #1a1a1a;
     color: white;
     border-radius: 5px;
@@ -11,15 +12,15 @@ const Tooltip = styled.div`
     font-size: 14px;
     white-space: pre-wrap; // 아래와 함께 쓰면 좋음
     width: max-content; // 너비가 안의 내용물로 결정되도록 하기(글자 깨짐 방지)
-    position: fixed;
     pointer-events: none;
-    z-index: 15;
 `
 const Container = styled.div`
     ${Tooltip} {
+        z-index: -1;
         opacity: 0;
     }
     &:has(${Tooltip} + *:hover) ${Tooltip} {
+        z-index: 15;
         opacity: 1;
     }
 `
