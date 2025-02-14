@@ -1,6 +1,5 @@
 import styled from 'styled-components';
-import {ComponentPropsWithoutRef, FocusEvent, forwardRef, KeyboardEvent, useEffect, useState} from "react";
-import {useSelection} from "../global/hook.ts";
+import {ComponentPropsWithoutRef, FocusEvent, forwardRef, KeyboardEvent, useEffect, useMemo, useState} from "react";
 import ContentEditable, {ContentEditableEvent} from "react-contenteditable";
 
 const Container = styled(ContentEditable)`
@@ -18,7 +17,7 @@ const Container = styled(ContentEditable)`
 `
 
 const TextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'> & {children?: string}>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
-    const selection = useSelection()
+    const selection = useMemo(() => window.getSelection(), [])
     const [html, setHtml] = useState<string>('')
 
     useEffect(() => {
