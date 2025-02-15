@@ -7,9 +7,9 @@ const Container = styled.div`
 `
 
 const Draggable = ({children, ...rest}: {children: ReactElement} & ComponentPropsWithoutRef<'div'>) => {
-    const {handleDragStart} = useContext(DropContext)
+    const {handleDragStartEvent} = useContext(DropContext)
 
-    return (<Container onMouseDown={handleDragStart} {...rest}>{children}</Container>)
+    return (<Container {...handleDragStartEvent} {...rest}>{children}</Container>)
 }
 
 export default Draggable
