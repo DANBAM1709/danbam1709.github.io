@@ -14,14 +14,19 @@ const GhostImageStyle = styled.img`
 
 interface DragHandler {
     dropTarget: HTMLElement | null
-    onDragStart: (e?: MouseEvent<HTMLElement>)=>void
+    onDragStart?: (e?: MouseEvent<HTMLElement>)=>void
     onDragOver?: (e?: MouseEvent<HTMLElement>)=>void
     onDragOut?: (e?: MouseEvent<HTMLElement>)=>void
+    onDragEnd?: (e?: MouseEvent<HTMLElement>)=>void
     onDrop: (e?: MouseEvent<HTMLElement>)=>void
 }
 
-// dropTarget: 드롭 장소, onDragStart: 드롭 시작, onDragOver: 드롭 중, onDragOut: 드롭 영역 밖, onDrop: 드롭 완료 || 함수 정의시 (e?: MouseEvent<HTMLElement>)
-const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragHandler): DropContextType => {
+/**
+ * dropTarget: 드롭 장소, onDragStart: 드롭 시작, onDragOver: 드롭 중, onDragOut: 드롭 영역 밖, onDrop: 드롭 완료 <br />
+ * 파라미터 함수 정의시 (e?: MouseEvent<HTMLElement>)<br />
+ * return isDrag:boolean, ...etc
+ */
+const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onDrop}: DragHandler): DropContextType => {
     const [isDrag, setIsDrag] = useState<boolean>(false)
     const [ghostSrc, setGhostSrc] = useState<string|null>(null) // 고스트 이미지 캡쳐 src
     const [ghostStyle, setGhostStyle] = useState<CSSProperties>({})
@@ -42,13 +47,12 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragH
     const handleDragStart = (e: MouseEvent<HTMLElement>) => {
         e.preventDefault()
         getGhostSrc().then(src => setGhostSrc(src))
-        onDragStart(e)
+        if (onDragStart) onDragStart(e)
         setIsDrag(true)
     }
 
     // DragOver
     const handleDragOver = (e: MouseEvent<HTMLElement>) => {
-        e.stopPropagation()
         e.preventDefault()
         if (onDragOver) onDragOver(e)
         setGhostPosFunc(e)
@@ -61,15 +65,16 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDrop}: DragH
     }
 
     // DragEnd
-    const handleDragEnd = () => {
+    const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
+        if (onDragEnd) onDragEnd(e)
         setIsDrag(false)
     }
 
     // Drop
-    const handleDrop = (e?: MouseEvent<HTMLElement>) => {
+    const handleDrop = (e: MouseEvent<HTMLElement>) => {
         onDrop(e)
-        handlerDragOut(e!)
-        handleDragEnd()
+        handlerDragOut(e)
+        handleDragEnd(e)
     }
 
     // WindowEnter
