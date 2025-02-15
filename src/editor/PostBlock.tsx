@@ -51,21 +51,8 @@ type Props = ComponentPropsWithoutRef<'div'> & {
 }
 
 // setIsAddBlock : 블럭 추가 여부
-const PostBlock = ({children, $index, ...props}: Props) => {
+const PostBlock = ({children, ...props}: Props) => {
     const selection = useSelection()
-    // const {setAddIndex, setIsAddBlock} = useContext(EditorContext)
-    //
-    // const handleAddBlock = {
-    //     onClick: (e: MouseEvent<HTMLDivElement>) => {
-    //         const currentIndex = $index + 1
-    //         if (e.ctrlKey || e.metaKey) { // 윈도우 ctrl, 맥 meta 이전에 삽입된 경우
-    //             setAddIndex(currentIndex-1)
-    //         } else {
-    //             setAddIndex(currentIndex)
-    //         }
-    //         setIsAddBlock(true)
-    //     }
-    // }
 
     const handleEditor = { // 텍스트 영역 이벤트
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
