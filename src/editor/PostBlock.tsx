@@ -1,6 +1,4 @@
-import {cloneElement, ComponentPropsWithoutRef, KeyboardEvent, ReactElement, useRef} from "react";
-import TooltipWrapper from "../common/ui/TooltipWrapper.tsx";
-import SoftBtn from "../common/ui/SoftBtn.tsx";
+import {cloneElement, ComponentPropsWithoutRef, KeyboardEvent, ReactElement} from "react";
 import styled from "styled-components";
 import {useSelection} from "../global/hook.ts";
 
@@ -47,18 +45,29 @@ const Container = styled.div`
     //}
 `
 
-const PostBlock = ({children, ...props}: {children: ReactElement} & ComponentPropsWithoutRef<'div'>) => {
+type Props = ComponentPropsWithoutRef<'div'> & {
+    children?: ReactElement,
+    $index: number
+}
+
+// setIsAddBlock : 블럭 추가 여부
+const PostBlock = ({children, $index, ...props}: Props) => {
     const selection = useSelection()
-    const containerRef = useRef<HTMLDivElement|null>(null)
+    // const {setAddIndex, setIsAddBlock} = useContext(EditorContext)
+    //
+    // const handleAddBlock = {
+    //     onClick: (e: MouseEvent<HTMLDivElement>) => {
+    //         const currentIndex = $index + 1
+    //         if (e.ctrlKey || e.metaKey) { // 윈도우 ctrl, 맥 meta 이전에 삽입된 경우
+    //             setAddIndex(currentIndex-1)
+    //         } else {
+    //             setAddIndex(currentIndex)
+    //         }
+    //         setIsAddBlock(true)
+    //     }
+    // }
 
-    const handleAddBlock = {
-        onClick: () => {
-            // const parent = containerRef.current!.parentElement as Element
-            // createPortal(<PostBlock><CommonTextArea /></PostBlock>, parent)
-        }
-    }
-
-    const handleEditor = { // CustomTextArea 이벤트
+    const handleEditor = { // 텍스트 영역 이벤트
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             const con = { // 조건 모음
                 empty: !e.currentTarget.firstChild, // 내용이 없다면
@@ -117,18 +126,17 @@ const PostBlock = ({children, ...props}: {children: ReactElement} & ComponentPro
         },
     }
 
-    return (<Container ref={containerRef} {...props}>
+    return (<Container {...props}>
         <div className={'action-wrapper'}>
             <div className={'action-group'}>
-                <TooltipWrapper>
-                    <SoftBtn className={'plus-btn'} {...handleAddBlock}>
-                    <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />
-                    </SoftBtn>
-                </TooltipWrapper>
+                {/*<TooltipWrapper>*/}
+                {/*    <FlatSoftBtn className={'plus-btn'} {...handleAddBlock}>*/}
+                {/*        <img src={`plus.svg`} alt={'plus.svg'} width={'16px'} height={'16px'} />*/}
+                {/*    </FlatSoftBtn>*/}
+                {/*</TooltipWrapper>*/}
             </div>
         </div>
-        {/*{children}*/}
-        {cloneElement(children, handleEditor)}
+        {cloneElement(children!, handleEditor)}
     </Container>)
 }
 
