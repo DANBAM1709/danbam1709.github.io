@@ -1,5 +1,4 @@
 import styled from "styled-components";
-import FlatSoftBtn from "../common/test/FlatSoftBtn.tsx";
 
 const Container = styled.div`
     user-select: none;
@@ -52,9 +51,9 @@ const Header = () => {
         </div>
         {/* 페이지 네비 링크 */}
         <div className={'navigation-wrapper'}>
-            <FlatSoftBtn>새 페이지</FlatSoftBtn>
-            <span style={{color: 'rgba(55, 53, 47, 0.5)', margin: '0 2px'}}>/</span>
-            <FlatSoftBtn>새 페이지</FlatSoftBtn>
+            {/*<FlatSoftBtn>새 페이지</FlatSoftBtn>*/}
+            {/*<span style={{color: 'rgba(55, 53, 47, 0.5)', margin: '0 2px'}}>/</span>*/}
+            {/*<FlatSoftBtn>새 페이지</FlatSoftBtn>*/}
         </div>
         {/* 편집시간 + 메뉴 버튼 */}
         <div className={'properties-sidebar-button'}>
