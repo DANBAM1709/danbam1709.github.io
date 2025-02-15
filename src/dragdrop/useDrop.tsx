@@ -45,29 +45,30 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
 
     // DragStart
     const handleDragStart = (e: MouseEvent<HTMLElement>) => {
+        if (e.button !== 0) return // 좌 클릭이 아니라면
         e.preventDefault()
         getGhostSrc().then(src => setGhostSrc(src))
-        if (onDragStart) onDragStart(e)
         setIsDrag(true)
+        if (onDragStart) onDragStart(e)
     }
 
     // DragOver
     const handleDragOver = (e: MouseEvent<HTMLElement>) => {
         e.preventDefault()
-        if (onDragOver) onDragOver(e)
         setGhostPosFunc(e)
+        if (onDragOver) onDragOver(e)
     }
 
     // DragOut
     const handlerDragOut = (e: MouseEvent<HTMLElement>) => {
-        if (onDragOut) onDragOut(e)
         setGhostPosFunc(e)
+        if (onDragOut) onDragOut(e)
     }
 
     // DragEnd
     const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
-        if (onDragEnd) onDragEnd(e)
         setIsDrag(false)
+        if (onDragEnd) onDragEnd(e)
     }
 
     // Drop
