@@ -4,7 +4,7 @@ import {useSelection} from "../global/hook.ts";
 import {eventManager} from "../global/event.ts";
 
 // 3 개 중 하나의 형태를 만족해야 한다
-const keys = ['color', 'size', 'fontWeight'] as const
+// const keys = ['color', 'size', 'fontWeight'] as const
 
 type StyleDict =
     | { color: string }
@@ -82,27 +82,8 @@ const onClick = (style: StyleDict) => {
 
     // const spans = cloneContents?.querySelectorAll('span')
     // console.log(text)
+    
 
-
-    // const divs = cloneContents?.querySelectorAll('div')
-    // console.log(cloneContents)
-    // if (divs) {}
-
-    // if (!range || !cloneContents) return
-    // const divs = cloneContents?.querySelectorAll('div')
-    // console.log(divs)
-    // console.log('으잉')
-    //
-    // if(!divs || divs.length === 0) {
-    //     const spans = cloneContents?.querySelectorAll('span')
-    //     console.log(spans)
-    //     updateStyle(style, range, cloneContents)
-    // } else {
-    //     Array.from(divs).forEach(div => {
-    //         console.log(div)
-    //         // updateStyle(style, range, div)
-    //     })
-    // }
 
 
 
