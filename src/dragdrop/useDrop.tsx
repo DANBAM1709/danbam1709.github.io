@@ -1,4 +1,4 @@
-import {ComponentProps, CSSProperties, MouseEvent, ReactElement, useState,} from "react";
+import {ComponentProps, CSSProperties, MouseEvent, ReactElement, useEffect, useState,} from "react";
 import html2canvas from "html2canvas";
 import {DropContextType} from "./DropContext.tsx";
 import styled from "styled-components";
@@ -27,9 +27,17 @@ interface DragHandler {
  * return isDrag:boolean, ...etc
  */
 const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onDrop}: DragHandler): DropContextType => {
+    const  [isClick, setIsClick] = useState<boolean>(false)
     const [isDrag, setIsDrag] = useState<boolean>(false)
     const [ghostSrc, setGhostSrc] = useState<string|null>(null) // 고스트 이미지 캡쳐 src
     const [ghostStyle, setGhostStyle] = useState<CSSProperties>({})
+
+    useEffect(() => {
+        if (!isClick) setIsDrag(false)
+    }, [isClick]);
+    useEffect(() => {
+        if (!isDrag) setIsClick(false)
+    }, [isDrag]);
 
     const getGhostSrc = async () => {
         if (!dropTarget) return null
@@ -42,42 +50,6 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
             left: e.clientX + 5,
         })
     }
-
-    // DragStart
-    const handleDragStart = (e: MouseEvent<HTMLElement>) => {
-        if (e.button !== 0) return // 좌 클릭이 아니라면
-        e.preventDefault()
-        getGhostSrc().then(src => setGhostSrc(src))
-        setIsDrag(true)
-        if (onDragStart) onDragStart(e)
-    }
-
-    // DragOver
-    const handleDragOver = (e: MouseEvent<HTMLElement>) => {
-        e.preventDefault()
-        setGhostPosFunc(e)
-        if (onDragOver) onDragOver(e)
-    }
-
-    // DragOut
-    const handlerDragOut = (e: MouseEvent<HTMLElement>) => {
-        setGhostPosFunc(e)
-        if (onDragOut) onDragOut(e)
-    }
-
-    // DragEnd
-    const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
-        setIsDrag(false)
-        if (onDragEnd) onDragEnd(e)
-    }
-
-    // Drop
-    const handleDrop = (e: MouseEvent<HTMLElement>) => {
-        onDrop(e)
-        handlerDragOut(e)
-        handleDragEnd(e)
-    }
-
     // WindowEnter
     const handleWindowEnter = (e: MouseEvent<HTMLElement>) => {
         if (isDrag && e.buttons === 0) { // 좌측 클릭 상태
@@ -85,6 +57,53 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
             return
         }
         setGhostPosFunc(e)
+    }
+    // DragEnd
+    const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
+        setIsDrag(false)
+        if (onDragEnd) onDragEnd(e)
+        if (onDragOut) onDragOut(e)
+    }
+
+    const handleDragStartEvent = {
+        onMouseDown: (e: MouseEvent<HTMLElement>) => { // 드래그 상태 확인
+            if (e.button !== 0) return // 좌 클릭이 아니라면
+            e.preventDefault()
+            setIsClick(true)
+        },
+        onMouseUp: (e: MouseEvent<HTMLElement>) => { // 드래그 취소
+            setIsClick(false)
+            handleDragEnd(e)
+        },
+        onMouseLeave: (e: MouseEvent<HTMLElement>) => { // 드래그 시작
+            if(!isClick) return // 클릭 상태가 아니라면
+            getGhostSrc().then(src => setGhostSrc(src))
+            setIsDrag(true)
+            if (onDragStart) onDragStart(e)
+        }
+    }
+
+    const handleWindowEvent = { // 윈도우 창 전체 영역 마우스 이벤트
+        onMouseEnter: handleWindowEnter, // 윈도우창 바깥에서 들어오기
+        onMouseUp: handleDragEnd, // 드래그 끝
+        onMouseMove: (e:MouseEvent<HTMLElement>) => { // 드롭 제외 영역 호버
+            e.preventDefault()
+            setGhostPosFunc(e)
+            if (onDragOut) onDragOut(e)
+        }
+    }
+    
+    const handleDropEvent = { // 드롭 영역 이벤트
+        onMouseEnter: handleWindowEnter,
+        onMouseUp: (e: MouseEvent<HTMLElement>) => { // 드롭 완료
+            onDrop(e)
+            handleDragEnd(e)
+        },
+        onMouseMove: (e: MouseEvent<HTMLElement>) => { // 드래그 중
+            e.preventDefault()
+            setGhostPosFunc(e)
+            if (onDragOver) onDragOver(e)
+        }
     }
 
     // GhostImage 컴포
@@ -94,7 +113,7 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
         return (<GhostImageStyle src={ghostSrc ?? transparentImg} alt={'ghost-image'} style={ghostStyle} {...props} />)
     }
 
-    return {isDrag, GhostImage, handleDragStart, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter}
+    return {isDrag, GhostImage, handleWindowEvent, handleDropEvent, handleDragStartEvent}
 }
 
 export default useDrop;
