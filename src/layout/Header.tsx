@@ -1,6 +1,5 @@
 import styled from "styled-components";
-import SoftBtn from "../common/ui/SoftBtn.tsx";
-import TooltipWrapper from "../common/ui/TooltipWrapper.tsx";
+import FlatSoftBtn from "../common/test/FlatSoftBtn.tsx";
 
 const Container = styled.div`
     user-select: none;
@@ -45,26 +44,26 @@ const Header = () => {
     return (<Container>
         {/* 네비게이션 사이드바 버튼 */}
         <div className={'navigation-sidebar-button'}>
-            <TooltipWrapper summary={'좌측 네비임돠'}>
-                <SoftBtn>
-                    <img src={'menu.svg'} alt={'menu.svg'} width={'16px'} height={'16px'} />
-                </SoftBtn>
-            </TooltipWrapper>
+            {/*<TooltipWrapper summary={'좌측 네비임돠'}>*/}
+            {/*    <FlatSoftBtn>*/}
+            {/*        <img src={'menu.svg'} alt={'menu.svg'} width={'16px'} height={'16px'} />*/}
+            {/*    </FlatSoftBtn>*/}
+            {/*</TooltipWrapper>*/}
         </div>
         {/* 페이지 네비 링크 */}
         <div className={'navigation-wrapper'}>
-            <SoftBtn>새 페이지</SoftBtn>
+            <FlatSoftBtn>새 페이지</FlatSoftBtn>
             <span style={{color: 'rgba(55, 53, 47, 0.5)', margin: '0 2px'}}>/</span>
-            <SoftBtn>새 페이지</SoftBtn>
+            <FlatSoftBtn>새 페이지</FlatSoftBtn>
         </div>
         {/* 편집시간 + 메뉴 버튼 */}
         <div className={'properties-sidebar-button'}>
             <span className={'last-edit-time'}>지금 편집</span>
-            <TooltipWrapper summary={'스타일'}>
-                <SoftBtn>
-                    <img src={'ellipsis.svg'} alt={'ellipsis.svg'} width={'18px'} height={'18px'} />
-                </SoftBtn>
-            </TooltipWrapper>
+            {/*<TooltipWrapper summary={'스타일'}>*/}
+            {/*    <FlatSoftBtn>*/}
+            {/*        <img src={'ellipsis.svg'} alt={'ellipsis.svg'} width={'18px'} height={'18px'} />*/}
+            {/*    </FlatSoftBtn>*/}
+            {/*</TooltipWrapper>*/}
         </div>
     </Container>)
 }
