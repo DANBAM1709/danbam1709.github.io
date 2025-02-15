@@ -102,10 +102,6 @@ const CustomRichEditor = () => {
         }
     }
 
-    const onDraftChange = () => {
-
-    }
-
     return (<DragDropProvider useDrop={handleDrop}><Container>
         {cards.map((card, index) => {
             return (<Section key={card.id} data-lastblock={cards.length === index+1? 'true': undefined}>
