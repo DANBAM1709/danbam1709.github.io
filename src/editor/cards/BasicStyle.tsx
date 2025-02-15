@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import TextArea from "../../common/TextArea.tsx";
-import {ChangeEvent, forwardRef, KeyboardEvent, useEffect, useMemo, useState} from "react";
+import {forwardRef, KeyboardEvent, useMemo, useState} from "react";
 import TextToolbar from "../TextToolbar.tsx";
 
 const Container = styled.div`
@@ -9,12 +9,6 @@ const Container = styled.div`
 const BasicStyle = forwardRef<HTMLDivElement, {children: string}>(({children}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
     const [isToolActive, setIsToolActive] = useState<boolean>(false)
-    const [data, setData] = useState<string>('')
-
-
-    // useEffect(() => {
-    //     console.log(data)
-    // }, [data]);
 
     const handleTextArea = {
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
