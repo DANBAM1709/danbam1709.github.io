@@ -1,15 +1,6 @@
 import styled from "styled-components";
 import Button from "../base/Button.tsx";
-import TextArea from "./TextArea.tsx";
 
-const CardDivider = styled.div`
-    background: #90CAF9;
-    width: 100%;
-    height: 3px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`
 const DraggableCard = styled.div.attrs({ tabIndex: 0 })`
     width: fit-content;
     height: fit-content;
@@ -24,19 +15,28 @@ const ActionTool = styled.div`
     display: flex;
     height: calc(1em * var(--line-height));
     align-items: center;
-    vertical-align: middle;
 `
 const DragButton = styled(Button)`
     border-radius: 0.125em;
-    transition: background 20ms ease-in;
-    fill: rgba(55, 53, 47, 0.35);
-    height: 24px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    transition: background 20ms ease-in, fill 20ms ease-in;
+    fill: rgba(55, 53, 47, 0.4);
+    height: 18px;
     
     &:hover {
-        background: rgba(55, 53, 47, 0.06);
+        background: rgba(55, 53, 47, 0.03);
+        fill: rgba(55, 53, 47, 0.5);
+    }
+    
+    & > * {
+        width: 15px;
+        height: 15px;
     }
 `
 const PlusButton = styled(Button)`
+    position: relative;
+    z-index: 10;
     border-radius: 50%;
     border: 1px solid #3399ff;
     opacity: 0.5;
@@ -47,19 +47,45 @@ const PlusButton = styled(Button)`
     
     & > * {
         transition: width 20ms ease-in, height 20ms ease-in;
+        width: 0.5em;
+        height: 0.5em;
     }
 
     &:hover {
         opacity: 1;
     }
     &:hover > * {
-        width: 13px;
-        height: 13px;
+        width: 0.7em;
+        height: 0.7em;
     }
 `
 
-const Title = styled(TextArea)`
-    font-size: 32px;
+const CardDivider = styled.div`
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.4em 0; // 수정 전 CardDropZone 확인 필수
+`
+const CardDividerLine = styled.div`
+    position: absolute;
+    top: 50%;
+    background: #90CAF9;
+    width: 100%;
+    height: 3px;
+    transform: translateY(-50%);
+    border-radius: 0.005em;
 `
 
-export {DraggableCard, CardDivider, Card, ActionTool, DragButton, PlusButton, Title}
+const TopDropZone = styled.div`
+    position: absolute !important;
+    top: 0; left: 0; right: 0; bottom: 50%;
+    z-index: -1;
+`
+const BottomDropZone = styled.div`
+    position: absolute !important;
+    top: 50%; left: 0; right: 0; bottom: 0;
+    z-index: -1;
+`
+
+export {DraggableCard, TopDropZone, BottomDropZone, CardDividerLine, CardDivider, Card, ActionTool, DragButton, PlusButton}
