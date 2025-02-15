@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import {ComponentPropsWithoutRef, MouseEvent, ReactElement, useContext, useMemo} from "react";
+import {ComponentPropsWithoutRef, ReactElement, useContext} from "react";
 import DropContext from "./DropContext.tsx";
 
 const DropArea = styled.div`
@@ -25,31 +25,12 @@ const DragOverArea = styled.div`
     top: 0; left: 0; right: 0; bottom: 0;
 `
 const DropZone = ({children, ...rest}: {children: ReactElement} & ComponentPropsWithoutRef<'div'>) => {
-    const {isDrag, GhostImage, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
-
-    const onDragOver = useMemo(() => {
-        return {
-            onMouseEnter: handleWindowEnter,
-            onMouseUp: handleDragEnd,
-            onMouseMove: handlerDragOut,
-        }
-    }, [handleDragEnd, handleWindowEnter, handlerDragOut])
-
-    const onDrop = useMemo(() => {
-        return {
-            onMouseEnter: handleWindowEnter,
-            onMouseUp: (e: MouseEvent<HTMLElement>) => {
-                handleDrop(e)
-                handleDragEnd(e)
-            },
-            onMouseMove: handleDragOver
-        }
-    }, [handleDragEnd, handleDragOver, handleDrop, handleWindowEnter])
+    const {isDrag, GhostImage, handleWindowEvent, handleDropEvent} = useContext(DropContext)
 
     return (<>
         {isDrag? <>
-                <DragOverArea {...onDragOver}></DragOverArea>
-                <DropArea {...onDrop} {...rest}>{children}</DropArea>
+                <DragOverArea {...handleWindowEvent}></DragOverArea>
+                <DropArea {...handleDropEvent} {...rest}>{children}</DropArea>
                 <GhostImage className={'ghost-image'} />
             </>
             : children}
