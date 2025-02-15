@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import {ComponentPropsWithoutRef, CSSProperties, useEffect, useState} from "react";
 import {useSelection} from "../global/hook.ts";
-import {eventManager} from "../utils/event.ts";
+import {eventManager} from "../global/event.ts";
 
 // 3 개 중 하나의 형태를 만족해야 한다
 const keys = ['color', 'size', 'fontWeight'] as const
@@ -142,7 +142,7 @@ const TextToolbar = ({...rest}: ComponentPropsWithoutRef<'div'> ) => {
                 setIsSelected(0)
                 return
             }
-            setIsSelected(pre => pre + 1)
+            setIsSelected(pre => pre + 1) // 선택 영역이 있을 경우
         }
 
         eventManager.addEventListener('selectionchange', 'TextToolbar', handleSelectionChange)
