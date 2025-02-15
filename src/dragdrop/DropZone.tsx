@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import {ComponentPropsWithoutRef, MouseEvent, ReactNode, useContext, useMemo} from "react";
+import {ComponentPropsWithoutRef, MouseEvent, ReactElement, useContext, useMemo} from "react";
 import DropContext from "./DropContext.tsx";
 
 const DropArea = styled.div`
@@ -12,7 +12,7 @@ const DropArea = styled.div`
     }
     > * {
         position: relative;
-        z-index: 9998;
+        z-index: 9998 !important;
     }
 `
 
@@ -24,7 +24,7 @@ const DragOverArea = styled.div`
     pointer-events: auto !important;
     top: 0; left: 0; right: 0; bottom: 0;
 `
-const DropZone = ({children, ...rest}: {children?: ReactNode} & ComponentPropsWithoutRef<'div'>) => {
+const DropZone = ({children, ...rest}: {children: ReactElement} & ComponentPropsWithoutRef<'div'>) => {
     const {isDrag, GhostImage, handleDragOver, handlerDragOut, handleDragEnd, handleDrop, handleWindowEnter} = useContext(DropContext)
 
     const onDragOver = useMemo(() => {
