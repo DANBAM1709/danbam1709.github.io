@@ -1,6 +1,7 @@
 import styled from "styled-components";
-import {cloneElement, ComponentPropsWithoutRef, ReactElement, ReactNode, Ref, useState} from "react";
+import {cloneElement, ComponentPropsWithoutRef, ReactElement, Ref, useState} from "react";
 import {usePopper} from "react-popper";
+import parse from "html-react-parser";
 
 // 스타일
 const Tooltip = styled.div`
@@ -31,7 +32,7 @@ export interface TooltipProps {
 }
 
 // 컴포
-const TooltipWithComponent = ({Component, summary}: {Component: ReactElement, summary?: ReactNode}) => {
+const TooltipWithComponent = ({Component, summary}: {Component: ReactElement, summary?: string}) => {
     const [tooltipEl, setTooltipEl] = useState<HTMLDivElement|null>(null)
     const [componentEl, setComponentEl] = useState<HTMLDivElement|null>(null)
 
@@ -61,7 +62,7 @@ const TooltipWithComponent = ({Component, summary}: {Component: ReactElement, su
 
     return (<Container>
         <Tooltip ref={setTooltipEl} style={{...styles.popper}} {...attributes.popper}>
-            {summary ?? ''}
+            {parse(summary ?? '')}
         </Tooltip>
         {cloneElement(Component, {ref: setComponentEl})}
     </Container>)
