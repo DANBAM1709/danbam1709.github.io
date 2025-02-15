@@ -1,13 +1,10 @@
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
 import CustomRichEditor from "./layout/CustomRichEditor.tsx";
 import styled from "styled-components";
-import Header from "./layout/Header.tsx";
 import {ErrorBoundary} from "react-error-boundary";
 import ErrorFallback from "./error/ErrorFallback.tsx";
 import NotFound from "./error/NotFound.tsx";
 import GlobalProvider from "./global/GlobalProvider.tsx";
-import NavSidebar from "./layout/NavSidebar.tsx";
-import Test from "./Test.tsx";
 import RichEditor from "./layout/RichEditor.tsx";
 
 const Container = styled.div`
