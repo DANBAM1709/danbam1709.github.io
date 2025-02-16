@@ -2,7 +2,7 @@ import {ComponentPropsWithoutRef, useMemo, useState} from "react";
 import SelectContext from "./SelectContext.ts";
 import styled from "styled-components";
 
-const Container = styled.div`
+const Container = styled.div.attrs({tabIndex: 0})`
     user-select: none;
 `
 
@@ -12,10 +12,10 @@ const SelectProvider = (props: ComponentPropsWithoutRef<'div'>) => {
     const [buttonEl, setButtonEl] = useState<HTMLElement|null>(null)
 
     // 리랜더링될 때마다 새로운 객체로 생성되는 것 방지
-    const value = useMemo(() => ({open, setOpen, buttonEl, setButtonEl}), [open, setOpen, buttonEl, setButtonEl])
+    const value = useMemo(() => ({open, setOpen, buttonEl, setButtonEl}), [open, buttonEl])
 
     return (
-        <SelectContext.Provider value={value} ><Container {...props} /></SelectContext.Provider>
+        <SelectContext.Provider value={value}><Container {...props} /></SelectContext.Provider>
     )
 }
 
