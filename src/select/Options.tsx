@@ -1,4 +1,4 @@
-import {ComponentPropsWithoutRef, useContext, useEffect, useState} from "react";
+import {ComponentPropsWithoutRef, FocusEvent, useContext, useLayoutEffect, useState} from "react";
 import SelectContext from "./SelectContext.ts";
 import styled from "styled-components";
 import {usePopper} from "react-popper";
@@ -35,9 +35,9 @@ interface Props extends ComponentPropsWithoutRef<'div'> {
 }
 
 // <Options direction='right' offset=10><Option /></Options>
-const Options = ({direction, offset, ...props}: Props) => {
+const Options = ({direction, offset, onBlur, ...props}: Props) => {
     const {open, setOpen, buttonEl} = useContext(SelectContext)
-    const [target, setTarget] = useState<HTMLElement|null>(null)
+    const [target, setTarget] = useState<HTMLDivElement|null>(null)
 
     const {styles, attributes} = usePopper(buttonEl, target,  {
         placement: direction as Placement ?? 'right',
@@ -65,15 +65,22 @@ const Options = ({direction, offset, ...props}: Props) => {
         ]
     })
 
-    useEffect(() => {
+    useLayoutEffect(() => {
+        if (!target) return
         if (open) {
-            target?.focus()
-        } else {
-            target?.blur()
+            target.focus()
         }
     }, [open, target]);
 
-    return (<Container ref={setTarget} onBlur={()=>setOpen(false)} style={{...styles.popper}} {...attributes.popper} {...props} />)
+    // blur 이벤트는 자식 요소로 포커싱이 이동해도 작동함
+    const handleBlur = (e: FocusEvent<HTMLDivElement>) => {
+        if (!e.relatedTarget || !e.currentTarget.contains(e.relatedTarget)) { // 자기 자신 및 하위 요소에 포커싱이 없다면
+            setOpen(false)
+            if (onBlur) onBlur(e)
+        }
+    }
+
+    return (<Container ref={setTarget} onBlur={handleBlur} style={{...styles.popper}} {...attributes.popper} {...props} />)
 }
 
 export default Options
