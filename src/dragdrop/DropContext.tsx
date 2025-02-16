@@ -25,11 +25,13 @@ const defaultDropEventHandlers: DropEventHandlers = {
 interface DragStartEventHandlers {
     onMouseDown: (e: MouseEvent<HTMLElement>)=>void
     onMouseUp: (e: MouseEvent<HTMLElement>)=>void
+    onMouseMove: (e: MouseEvent<HTMLElement>)=>void
     onMouseLeave: (e: MouseEvent<HTMLElement>)=>void
 }
 const defaultDragStartEventHandlers: DragStartEventHandlers = {
     onMouseDown: () => {},
     onMouseUp: () => {},
+    onMouseMove: () => {},
     onMouseLeave: () => {},
 }
 
