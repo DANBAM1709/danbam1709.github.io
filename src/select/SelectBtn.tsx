@@ -36,7 +36,10 @@ const SelectBtn = forwardRef<HTMLDivElement, Props>(({children, onClick, ...prop
     
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
-        setOpen(prev => !prev)
+        setOpen(prev => {
+            if (prev) e.currentTarget.focus() // Options 이벤트에서 버튼으로 포커싱 이동 open -> False
+            return !prev
+        })
         if(onClick) onClick(e)
     }
 
