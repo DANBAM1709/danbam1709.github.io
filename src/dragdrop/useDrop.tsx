@@ -41,7 +41,9 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
         }
     }, [isClick, startX, startY]);
     useEffect(() => {
-        if (!isDrag) setIsClick(false)
+        if (!isDrag) {
+            setIsClick(false)
+        }
     }, [isDrag]);
 
     const getGhostSrc = async () => {
@@ -56,18 +58,11 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
         })
     }
 
+    // DragStart
     const handleDragStart = (e: MouseEvent<HTMLElement>) => { // 드래그 시작
         getGhostSrc().then(src => setGhostSrc(src))
         setIsDrag(true)
         if (onDragStart) onDragStart(e)
-    }
-    // WindowEnter
-    const handleWindowEnter = (e: MouseEvent<HTMLElement>) => {
-        if (isDrag && e.buttons === 0) { // 좌측 클릭 상태
-            setIsDrag(false)
-            return
-        }
-        setGhostPosFunc(e)
     }
     // DragEnd
     const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
@@ -75,11 +70,19 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
         if (onDragEnd) onDragEnd(e)
         if (onDragOut) onDragOut(e)
     }
+    // WindowEnter
+    const handleWindowEnter = (e: MouseEvent<HTMLElement>) => {
+        if (isDrag && e.buttons !== 1) { // e.buttons === 1: 좌클릭
+            handleDragEnd(e)
+            return
+        }
+        setGhostPosFunc(e)
+    }
 
     const handleDragStartEvent = {
         onMouseDown: (e: MouseEvent<HTMLElement>) => { // 드래그 상태 확인
-            if (e.button !== 0) return // 좌 클릭이 아니라면
             e.preventDefault()
+            if (e.button !== 0) return // 좌 클릭이 아니라면
             setIsClick(true)
             startX.current = e.clientX
             startY.current = e.clientY
@@ -115,11 +118,12 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
     const handleDropEvent = { // 드롭 영역 이벤트
         onMouseEnter: handleWindowEnter,
         onMouseUp: (e: MouseEvent<HTMLElement>) => { // 드롭 완료
-            onDrop(e)
             handleDragEnd(e)
+            if (onDrop) onDrop(e)
         },
         onMouseMove: (e: MouseEvent<HTMLElement>) => { // 드래그 중
             e.preventDefault()
+            if (e.buttons !== 1) return // 빠르게 클릭 후 이동하면 랜더링이 사라지기도 전에 다시 실행됨, 이를 방지하기 위함
             setGhostPosFunc(e)
             if (onDragOver) onDragOver(e)
         }
