@@ -32,15 +32,17 @@ const TextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'> & {c
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Tab') { // Tab -> /t
                 e.preventDefault()
+                if (!selection) return
+                const range = selection.getRangeAt(0)
+                range.deleteContents() // 선택영역 삭제
+                const tabNode = document.createTextNode('\t')
+                range.insertNode(tabNode)
+                range.setStartAfter(tabNode) // 커서 이동
+            }
 
-                if (selection && selection.rangeCount > 0) {
-                    const range = selection.getRangeAt(0)
-                    range.deleteContents() // 선택영역 삭제
-
-                    const tabNode = document.createTextNode('\t')
-                    range.insertNode(tabNode)
-                    range.setStartAfter(tabNode) // 커서 이동
-                }
+            if (e.key === 'Escape') { // ESC 선택영역 없애기
+                if (!selection) return
+                selection.collapse(selection.focusNode, selection.focusOffset)
             }
 
             if (onKeyDown) onKeyDown(e)
