@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import {cloneElement, ComponentPropsWithoutRef, ReactElement, Ref, useState} from "react";
+import {ReactElement, useState} from "react";
 import {usePopper} from "react-popper";
 import parse from "html-react-parser";
 
@@ -15,6 +15,7 @@ const Tooltip = styled.div`
     width: max-content; // 너비가 안의 내용물로 결정되도록 하기(글자 깨짐 방지)
     pointer-events: none;
 `
+
 const Container = styled.div`
     ${Tooltip} {
         z-index: -1;
@@ -25,11 +26,6 @@ const Container = styled.div`
         opacity: 1;
     }
 `
-
-export interface TooltipProps {
-    ref: Ref<HTMLDivElement>
-    props: ComponentPropsWithoutRef<'div'>
-}
 
 // 컴포
 const TooltipWithComponent = ({Component, summary}: {Component: ReactElement, summary?: string}) => {
@@ -64,7 +60,7 @@ const TooltipWithComponent = ({Component, summary}: {Component: ReactElement, su
         <Tooltip ref={setTooltipEl} style={{...styles.popper}} {...attributes.popper}>
             {parse(summary ?? '')}
         </Tooltip>
-        {cloneElement(Component, {ref: setComponentEl})}
+        <div ref={setComponentEl}>{Component}</div>
     </Container>)
 }
 
