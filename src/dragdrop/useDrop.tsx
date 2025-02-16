@@ -5,7 +5,7 @@ import styled from "styled-components";
 
 const GhostImageStyle = styled.img`
     position: fixed;
-    opacity: 0.6;
+    opacity: 0.1;
     object-fit: contain;
     z-index: 99999;
     pointer-events: none !important;
