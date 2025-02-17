@@ -1,47 +1,45 @@
 import styled from "styled-components";
 import TextArea from "../../common/TextArea.tsx";
-import {forwardRef, KeyboardEvent, useMemo, useState} from "react";
-import TextToolbar from "../TextToolbar.tsx";
+import {forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
+import {GetDataHTMLElement} from "../../layout/RichEditor.tsx";
+import {useRichEditContext} from "../RichEditorReducer.ts";
 
-const Container = styled.div`
+const BasicTextArea = styled(TextArea)`
+    display: block;
 `
 
-const BasicStyle = forwardRef<HTMLDivElement, {children: string}>(({children}, ref) => {
-    const selection = useMemo(() => window.getSelection(), [])
-    const [isToolActive, setIsToolActive] = useState<boolean>(false)
+const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children}, ref) => {
+    const targetRef = useRef<HTMLDivElement>(null)
+    const selection = useMemo(() => window.getSelection(), []) // contenteditable 이 빈 상태에서 랜더링되면 랜더링 전 가져온 selection 은 해당 요소에서 null 이 됨
+    const {dispatch} = useRichEditContext()
+
+    useImperativeHandle(ref, () => {
+        if (targetRef.current) {
+            return Object.assign(targetRef.current, {
+                getData: () => targetRef.current!.innerHTML
+            }) as GetDataHTMLElement
+        }
+        throw new Error('BasicStyle ref error!')
+    }, []);
 
     const handleTextArea = {
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             const con = { // 조건 모음
-                empty: !e.currentTarget.firstChild, // 내용이 없다면
-                delete: e.key === 'Backspace' && e.currentTarget.innerHTML === '<br>', // 블록 삭제
+                empty: e.currentTarget.innerHTML === '<br>' || e.currentTarget.innerText === '', // 내용이 없다면
+                delete: e.key === 'Backspace', // 블록 삭제
                 up: e.key === 'ArrowUp', // 블록 이동 위로
                 down: e.key === 'ArrowDown', // 블록 이동 아래로
             }
 
-            // 첫 줄 텍스트 노드 방지 안되고 있는 듯?
-            if (con.empty) {
-                // console.log(e.currentTarget.firstChild)
-                // const range = selection!.getRangeAt(0)
-                // const div = document.createElement('div')
-                // div.textContent = '\u200B'
-                // e.currentTarget.appendChild(div)
-                // range.selectNodeContents(div.firstChild!)
-                // range.collapse(false) // 마지막 위치로 이동
-            }
-
             // <- backspace && empty
-            if (con.delete) {
-                console.log('삭제')
-                // e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
+            if (con.delete && con.empty) {
+                e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
+                dispatch({type: 'DELETE_CARD', payload: e.currentTarget})
             }
 
             // 방향키 Up
             if (con.up) {
-                if (!selection) { // empty
-                    console.log('위로')
-                    return
-                }
+                if (!selection) return
                 const range = selection.getRangeAt(0)
 
                 const rangeTop = range.getBoundingClientRect().top
@@ -60,10 +58,7 @@ const BasicStyle = forwardRef<HTMLDivElement, {children: string}>(({children}, r
 
             // 방향키 Down
             if (con.down) {
-                if (!selection) { // empty
-                    console.log('아래로')
-                    return
-                }
+                if (!selection) return
                 const range = selection.getRangeAt(0)
 
                 const rangeBottom = range.getBoundingClientRect().bottom
@@ -78,14 +73,10 @@ const BasicStyle = forwardRef<HTMLDivElement, {children: string}>(({children}, r
             }
 
         },
-        onFocus: () => setIsToolActive(true),
-        onBlur: () => setIsToolActive(false),
+        onFocus: () => dispatch({type: 'TOGGLE_TOOLTIP', payload: true}),
+        onBlur: () => dispatch({type: 'TOGGLE_TOOLTIP', payload: false}),
     }
 
-    return (<Container>
-        <TextArea ref={ref} {...handleTextArea}>{children ?? ''}</TextArea>
-        {isToolActive? <TextToolbar />:null}
-    </Container>)
-})
+    return (<BasicTextArea ref={targetRef} {...handleTextArea}>{children ?? ''}</BasicTextArea>)})
 
 export default BasicStyle
