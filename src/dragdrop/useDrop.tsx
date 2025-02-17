@@ -55,7 +55,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
     }
     const setGhostPosFunc = useMemo(() => throttle((e: MouseEvent<HTMLElement>) => { // 경계에서 동시에 실행되는 Warning 문제 해결을 위한 throttle useMemo 안쓰면 빈도수가 줄 뿐 여전히 존재함
         setGhostStyle({
-            top: e.clientY + 5,
+            top: e.clientY + 5, // SyntheticEvent 이벤트 종료 이후 재사용 pooling 될 때 내부 속성이 null 이 되지만 clientY 같은 원시값은 클로저에 캡쳐되어 안전하게 유지됨 
             left: e.clientX + 5,
         })
     }, 15), [])
