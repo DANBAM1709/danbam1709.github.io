@@ -16,7 +16,7 @@ const DropArea = styled.div`
     }
 `
 
-const DragOverArea = styled.div`
+const WindowArea = styled.div`
     position: fixed;
     z-index: 9997;
     user-select: none;
@@ -29,7 +29,7 @@ const DropZone = ({children, ...rest}: {children: ReactElement} & ComponentProps
 
     return (<>
         {isDrag? <>
-                <DragOverArea {...handleWindowEvent}></DragOverArea>
+                <WindowArea {...handleWindowEvent} />
                 <DropArea {...handleDropEvent} {...rest}>{children}</DropArea>
                 <GhostImage className={'ghost-image'} />
             </>
