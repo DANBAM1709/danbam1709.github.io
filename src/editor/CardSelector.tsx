@@ -1,6 +1,7 @@
 import {forwardRef, ReactElement, useEffect, useState} from "react";
 import BasicStyle from "./cards/BasicStyle.tsx";
 import TitleStyle from "./cards/TitleStyle.tsx";
+import {GetDataHTMLElement} from "../layout/RichEditor.tsx";
 
 export type CardProps =
     {id: string, mode: 'title', data: string} | // data: content
@@ -8,7 +9,7 @@ export type CardProps =
     {id: string, mode: 'code', data: string}  // data: content
 
 
-const CardSelector = forwardRef<HTMLDivElement, Omit<CardProps, 'id'>>(({mode, data}, ref) => {
+const CardSelector = forwardRef<GetDataHTMLElement, Omit<CardProps, 'id'>>(({mode, data}, ref) => {
     const [component, setComponent] = useState<ReactElement>(<></>)
 
     useEffect(() => {
