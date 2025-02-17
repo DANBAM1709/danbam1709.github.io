@@ -1,38 +1,30 @@
-import {
-    ComponentPropsWithoutRef,
-    forwardRef,
-    MouseEvent,
-    MutableRefObject,
-    ReactNode,
-    useCallback,
-    useContext
-} from "react";
-import SelectContext from "./SelectContext.ts";
+import {ComponentPropsWithoutRef, MouseEvent, ReactNode} from "react";
 import styled from "styled-components";
 import Button from "../base/Button.tsx";
+import {useSelectContext} from "./SelectContext.ts";
 
 const Container = styled(Button)``
 
 interface Props extends ComponentPropsWithoutRef<"div"> {
     children: ReactNode
 }
-const SelectBtn = forwardRef<HTMLDivElement, Props>(({children, onClick, ...props}, ref) => {
-    const {setOpen, setButtonEl} = useContext(SelectContext) // Options open
+const SelectBtn = ({children, onClick, ...props}: Props) => {
+    const {setOpen, setButtonEl} = useSelectContext() // Options open
 
-    // 외부 ref와 내부 상태(ref)를 모두 처리하기 위한 콜백
-    const containerRef = useCallback(
-        (node: HTMLDivElement | null) => {
-            setButtonEl(node);
-
-            if (!ref) return;
-            if (typeof ref === 'function') {
-                ref(node);
-            } else {
-                (ref as MutableRefObject<HTMLElement | null>).current = node;
-            }
-        },
-        [ref, setButtonEl]
-    );
+    // // 외부 ref와 내부 상태(ref)를 모두 처리하기 위한 콜백
+    // const containerRef = useCallback(
+    //     (node: HTMLDivElement | null) => {
+    //         setButtonEl(node);
+    //
+    //         if (!ref) return;
+    //         if (typeof ref === 'function') {
+    //             ref(node);
+    //         } else {
+    //             (ref as MutableRefObject<HTMLElement | null>).current = node;
+    //         }
+    //     },
+    //     [ref, setButtonEl]
+    // );
     
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -44,7 +36,12 @@ const SelectBtn = forwardRef<HTMLDivElement, Props>(({children, onClick, ...prop
     }
 
 
-    return (<Container ref={containerRef} onClick={handleClick} {...props}>{children}</Container>)
-})
+    return (<Container ref={setButtonEl} onClick={handleClick} {...props}>{children}</Container>)
+}
+
+// 개발 단계에서만 실행
+// if (process.env.NODE_ENV !== 'production') {
+//     SelectBtn.displayName = 'SelectBtn';
+// }
 
 export default SelectBtn
