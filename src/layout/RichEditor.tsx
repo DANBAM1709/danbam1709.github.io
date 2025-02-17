@@ -34,6 +34,7 @@ import TextToolbar from "../editor/TextToolbar.tsx";
 import {useRichEditContext} from "../editor/RichEditorReducer.ts";
 import useUndo from "use-undo";
 import {eventManager} from "../global/event.ts";
+import useUndoRedo from "../editor/useUndoRedo.ts";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -82,46 +83,17 @@ const RichEditor = () => {
     const [moveIndex, setMoveIndex] = useState<number>(-1) // 이동될 인덱스
     const tooltip = useTooltip()
     const {state, dispatch} = useRichEditContext()
+    const {present, set, isUndoRedo, setIsUndoRedo} = useUndoRedo(cards)
 
-    // undo|redo
-    const [present, { set, undo, redo, canUndo, canRedo }] = useUndo(cards);
-    const [isUndo, setIsUndo] = useState<boolean>(false) // 만약 undo 라면 present 업데이트 안함
-    const [isRedo, setIsRedo] = useState<boolean>(false) // 만약 redo 라면 present 업데이트 안함
-
-    // undo, redo
-    useEffect(() => { // 키보드 이벤트 등록
-        if (!redo || !undo) return
-        const handleUndo = (event: Event) => {
-            const e = event as KeyboardEvent
-            if (e.ctrlKey && e.key.toLowerCase() === 'z' ) { // 뒤로
-                e.preventDefault()
-                if (!canUndo) return
-                undo()
-                setIsUndo(true)
-            }
-            if (e.ctrlKey && e.key.toLowerCase() === 'y' ) { // 앞으로
-                e.preventDefault()
-                if(!canRedo) return
-                redo()
-                setIsRedo(true)
-            }
-        }
-        eventManager.addEventListener('keydown', 'RichEditor', handleUndo)
-
-        return () => {
-            eventManager.removeEventListener('keydown', 'RichEditor')
-        }
-    }, [canRedo, canUndo, redo, undo]);
-    useEffect(() => { // undo redo 상태의 카드 등록
-        if (isUndo || isRedo) {
+    // undo|redo 뒤로|앞으로
+    useEffect(() => {
+        if (isUndoRedo) {
             setCards(present.present)
-            setIsUndo(false)
-            setIsRedo(false)
+            setIsUndoRedo(false)
         }
-    }, [isRedo, isUndo]);
-    useEffect(() => { // present 에 카드 등록
-        if (!set) return
-        if(!isUndo && !isRedo) set(cards)
+    }, [isUndoRedo]);
+    useEffect(() => {
+        if (!isUndoRedo) set(cards)
     }, [cards]);
 
     // 카드 삭제
