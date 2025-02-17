@@ -1,5 +1,5 @@
-import {ComponentPropsWithoutRef, FocusEvent, useContext, useLayoutEffect, useState} from "react";
-import SelectContext from "./SelectContext.ts";
+import {ComponentPropsWithoutRef, FocusEvent, useLayoutEffect, useState} from "react";
+import {useSelectContext} from "./SelectContext.ts";
 import styled from "styled-components";
 import {usePopper} from "react-popper";
 import {Placement} from "@popperjs/core";
@@ -36,7 +36,7 @@ interface Props extends ComponentPropsWithoutRef<'div'> {
 
 // <Options direction='right' offset=10><Option /></Options>
 const Options = ({direction, offset, onBlur, ...props}: Props) => {
-    const {open, setOpen, buttonEl} = useContext(SelectContext)
+    const {open, setOpen, buttonEl} = useSelectContext()
     const [target, setTarget] = useState<HTMLDivElement|null>(null)
 
     const {styles, attributes} = usePopper(buttonEl, target,  {
@@ -69,6 +69,8 @@ const Options = ({direction, offset, onBlur, ...props}: Props) => {
         if (!target) return
         if (open) {
             target.focus()
+        } else {
+            target.blur()
         }
     }, [open, target]);
 
