@@ -2,6 +2,7 @@ import useUndo from "use-undo";
 import {useCallback, useEffect, useState} from "react";
 import {eventManager} from "../global/event.ts";
 
+// initData: 초기값, return {present: present.present-현재 값, set-기록에 넣는 함수, isUndoRedo, setIsUndoRedo}
 const useUndoRedo = <T,>(initData: T) => {
     const [isUndoRedo, setIsUndoRedo] = useState<boolean>(false) // 뒤로 가기 또는 앞으로 가기 시전
     const [present, { set, undo, redo, canUndo, canRedo }] = useUndo(initData);
