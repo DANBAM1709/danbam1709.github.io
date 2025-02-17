@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import {ComponentPropsWithoutRef, MouseEvent, useContext} from "react";
-import SelectContext from "./SelectContext.ts";
+import {ComponentPropsWithoutRef, MouseEvent} from "react";
+import {useSelectContext} from "./SelectContext.ts";
 
 const Container = styled.div`
     display: flex;
@@ -19,24 +19,8 @@ const Container = styled.div`
     }
 `
 
-// const OptionContainer = styled.div`
-//     user-select: none; // 드래그 불가
-//     cursor: pointer;
-//     transition: background 20ms ease-in;
-//     margin: 0 4px;
-//     border-radius: 6px;
-//     padding: 4px 12px 4px 10px;
-//     box-sizing: border-box;
-//     gap: 10px;
-//     white-space: nowrap;
-//
-//     &:hover {
-//         background: rgba(55, 53, 47, 0.06);
-//     }
-// `
-
 const Option = ({onClick, ...props}: ComponentPropsWithoutRef<'div'>) => {
-    const {setOpen} = useContext(SelectContext)
+    const {setOpen} = useSelectContext()
 
     const handleClick = (e: MouseEvent<HTMLDivElement>) => {
         setOpen(false)
