@@ -32,6 +32,8 @@ import Copy from '../assets/svg/copy.svg?react'
 import Swap from '../assets/svg/swap.svg?react'
 import TextToolbar from "../editor/TextToolbar.tsx";
 import {useRichEditContext} from "../editor/RichEditorReducer.ts";
+import useUndo from "use-undo";
+import {eventManager} from "../global/event.ts";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -69,23 +71,61 @@ export interface GetDataHTMLElement extends HTMLElement {
 
 const RichEditor = () => {
     const cardRefs = useRef<(GetDataHTMLElement|null)[]>([]) // 카드 배열 ref [], 0: 제목
-    const [cards, setCards] = useState<CardProps[]>([]) // 출력할 데이터
+    const [cards, setCards] = useState<CardProps[]>([
+        {id: crypto.randomUUID(), mode: 'title', data: '제목이옹'},
+        {id: crypto.randomUUID(), mode: 'default', data: '1'},
+        {id: crypto.randomUUID(), mode: 'default', data: '2'},
+        {id: crypto.randomUUID(), mode: 'default', data: '3'},
+        {id: crypto.randomUUID(), mode: 'default', data: '4'},
+    ]) // 출력할 데이터
     const [targetIndex, setTargetIndex] = useState<number>(-1) // 이동할 컴포넌트 
     const [moveIndex, setMoveIndex] = useState<number>(-1) // 이동될 인덱스
     const tooltip = useTooltip()
     const {state, dispatch} = useRichEditContext()
 
-    useEffect(() => {
-        setCards([
-            {id: crypto.randomUUID(), mode: 'title', data: '제목이옹'},
-            {id: crypto.randomUUID(), mode: 'default', data: '1'},
-            {id: crypto.randomUUID(), mode: 'default', data: '2'},
-            {id: crypto.randomUUID(), mode: 'default', data: '3'},
-            {id: crypto.randomUUID(), mode: 'default', data: '4'},
-        ])
-    }, []);
+    // undo|redo
+    const [present, { set, undo, redo, canUndo, canRedo }] = useUndo(cards);
+    const [isUndo, setIsUndo] = useState<boolean>(false) // 만약 undo 라면 present 업데이트 안함
+    const [isRedo, setIsRedo] = useState<boolean>(false) // 만약 redo 라면 present 업데이트 안함
 
-    useEffect(() => { // 카드 삭제
+    // undo, redo
+    useEffect(() => { // 키보드 이벤트 등록
+        if (!redo || !undo) return
+        const handleUndo = (event: Event) => {
+            const e = event as KeyboardEvent
+            if (e.ctrlKey && e.key.toLowerCase() === 'z' ) { // 뒤로
+                e.preventDefault()
+                if (!canUndo) return
+                undo()
+                setIsUndo(true)
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 'y' ) { // 앞으로
+                e.preventDefault()
+                if(!canRedo) return
+                redo()
+                setIsRedo(true)
+            }
+        }
+        eventManager.addEventListener('keydown', 'RichEditor', handleUndo)
+
+        return () => {
+            eventManager.removeEventListener('keydown', 'RichEditor')
+        }
+    }, [canRedo, canUndo, redo, undo]);
+    useEffect(() => { // undo redo 상태의 카드 등록
+        if (isUndo || isRedo) {
+            setCards(present.present)
+            setIsUndo(false)
+            setIsRedo(false)
+        }
+    }, [isRedo, isUndo]);
+    useEffect(() => { // present 에 카드 등록
+        if (!set) return
+        if(!isUndo && !isRedo) set(cards)
+    }, [cards]);
+
+    // 카드 삭제
+    useEffect(() => {
         const index = cardRefs.current.findIndex(ref => ref === state.deleteEl);
         if (index > 0) {
             setCards(card => card.filter((_, i) => i !== index))
@@ -97,8 +137,6 @@ const RichEditor = () => {
     const handleDrop = useDrop({
         dropTarget: cardRefs.current[targetIndex],
         onDragStartBefore: (e?: MouseEvent<HTMLElement>) => {
-            console.log('뭐지?')
-            console.log(e?.currentTarget.dataset.targetIndex)
             const index = parseInt(e?.currentTarget.dataset.targetIndex ?? '0')
             setTargetIndex(index)
         },
@@ -125,7 +163,6 @@ const RichEditor = () => {
     const handleAddCard = (index: number) => ({
         onClick: () => {
             const addIndex = index + 1
-            dispatch({type: 'DELETE_CARD'})
         }
     })
 
