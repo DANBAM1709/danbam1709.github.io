@@ -1,4 +1,4 @@
-import {createContext, Dispatch, SetStateAction} from "react";
+import {createContext, Dispatch, SetStateAction, useContext} from "react";
 
 interface SelectContextType {
     open: boolean, //Options hide|show
@@ -13,5 +13,13 @@ const SelectContext = createContext<SelectContextType>({ // Context 내 전역 �
     buttonEl: null,
     setButtonEl: () => {}
 })
+
+export const useSelectContext = () => {
+    const context = useContext(SelectContext)
+
+    if (!context) throw new Error('SelectContext must be used within a NestedSelectProvider')
+
+    return context
+}
 
 export default SelectContext
