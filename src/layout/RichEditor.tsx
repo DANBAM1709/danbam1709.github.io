@@ -32,8 +32,6 @@ import Copy from '../assets/svg/copy.svg?react'
 import Swap from '../assets/svg/swap.svg?react'
 import TextToolbar from "../editor/TextToolbar.tsx";
 import {useRichEditContext} from "../editor/RichEditorReducer.ts";
-import useUndo from "use-undo";
-import {eventManager} from "../global/event.ts";
 import useUndoRedo from "../editor/useUndoRedo.ts";
 
 const Container = styled(MainContainer)`
@@ -87,14 +85,14 @@ const RichEditor = () => {
 
     // undo|redo 뒤로|앞으로
     useEffect(() => {
-        if (isUndoRedo) {
-            setCards(present.present)
-            setIsUndoRedo(false)
+        if (!isUndoRedo) { // 카드 history 저장
+            set(cards)
+            return
         }
-    }, [isUndoRedo]);
-    useEffect(() => {
-        if (!isUndoRedo) set(cards)
-    }, [cards]);
+        
+        setCards(present.present) // undo | redo 업데이트
+        setIsUndoRedo(false)
+    }, [isUndoRedo, cards]);
 
     // 카드 삭제
     useEffect(() => {
