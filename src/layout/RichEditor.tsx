@@ -77,8 +77,7 @@ const RichEditor = () => {
         {id: crypto.randomUUID(), mode: 'default', data: '3'},
         {id: crypto.randomUUID(), mode: 'default', data: '4'},
     ]) // 출력할 데이터
-    const [targetIndex, setTargetIndex] = useState<number>(-1) // 이동할 컴포넌트 
-    const [moveIndex, setMoveIndex] = useState<number>(-1) // 이동될 인덱스
+
     const tooltip = useTooltip()
     const {state, dispatch} = useRichEditContext()
     const {present, set, isUndoRedo, setIsUndoRedo} = useUndoRedo(cards)
@@ -105,25 +104,26 @@ const RichEditor = () => {
 
     // 드래그 앤 드롭 정의
     const handleDrop = useDrop({
-        dropTarget: cardRefs.current[targetIndex],
+        dropTarget: cardRefs.current[state.dragIndex],
         onDragStartBefore: (e?: MouseEvent<HTMLElement>) => {
             const index = parseInt(e?.currentTarget.dataset.targetIndex ?? '0')
-            setTargetIndex(index)
+            dispatch({type: 'DRAG_INDEX_UPDATE', payload: index})
         },
         onDragOver: (e?: MouseEvent<HTMLElement>) => {
             const index = parseInt(e?.currentTarget.dataset.selectIndex ?? '-1')
-            setMoveIndex(index)
+            dispatch({type: 'DROP_INDEX_UPDATE', payload: index})
         },
         onDragOut: () => {
-            setMoveIndex(-1)
+            dispatch({type: 'DROP_INDEX_UPDATE', payload: -1})
         },
         onDrop: () => {
-            if (moveIndex === -1 || moveIndex + 1 === targetIndex) return // 이동 X
+            const [dropIndex, dragIndex] = [state.dropIndex, state.dragIndex]
+            if (dropIndex === -1 || dropIndex + 1 === dragIndex) return // 이동 X
 
             setCards(prev => { // 위치 이동
                 const copy = [...prev];
-                const [element] = copy.splice(targetIndex, 1);
-                const insertIndex = targetIndex <= moveIndex ? moveIndex : moveIndex + 1;
+                const [element] = copy.splice(dragIndex, 1);
+                const insertIndex = dragIndex <= dropIndex ? dropIndex : dropIndex + 1;
                 copy.splice(insertIndex, 0, element);
                 return copy;
             });
@@ -178,7 +178,7 @@ const RichEditor = () => {
                 </DraggableCard>
                 {/* 카드 나누는 기준 + 카드 추가 */}
                 <CardDivider>
-                    {moveIndex === index? <CardDividerLine/>: null}
+                    {state.dropIndex === index? <CardDividerLine/>: null}
                     <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={tooltip.editorPlusBtn} />
                 </CardDivider>
                 {/* 드롭 영역 상|하 */}
