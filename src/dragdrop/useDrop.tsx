@@ -1,7 +1,8 @@
-import {ComponentProps, CSSProperties, MouseEvent, ReactElement, useEffect, useRef, useState,} from "react";
+import {ComponentProps, CSSProperties, MouseEvent, ReactElement, useEffect, useMemo, useRef, useState,} from "react";
 import html2canvas from "html2canvas";
 import {DropContextType} from "./DropContext.tsx";
 import styled from "styled-components";
+import {throttle} from "lodash";
 
 const GhostImageStyle = styled.img`
     position: fixed;
@@ -14,11 +15,12 @@ const GhostImageStyle = styled.img`
 
 interface DragHandler {
     dropTarget: HTMLElement | null
+    onDragStartBefore?: (e?: MouseEvent<HTMLElement>)=>void
     onDragStart?: (e?: MouseEvent<HTMLElement>)=>void
     onDragOver?: (e?: MouseEvent<HTMLElement>)=>void
     onDragOut?: (e?: MouseEvent<HTMLElement>)=>void
     onDragEnd?: (e?: MouseEvent<HTMLElement>)=>void
-    onDrop: (e?: MouseEvent<HTMLElement>)=>void
+    onDrop?: (e?: MouseEvent<HTMLElement>)=>void
 }
 
 /**
@@ -26,7 +28,7 @@ interface DragHandler {
  * 파라미터 함수 정의시 (e?: MouseEvent<HTMLElement>)<br />
  * return isDrag:boolean, ...etc
  */
-const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onDrop}: DragHandler): DropContextType => {
+const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDragOut, onDragEnd, onDrop}: DragHandler): DropContextType => {
     const [startX, startY] = [useRef<number>(0), useRef<number>(0)]
     const  [isClick, setIsClick] = useState<boolean>(false)
     const [isDrag, setIsDrag] = useState<boolean>(false)
@@ -36,27 +38,33 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
     useEffect(() => {
         if (!isClick) {
             setIsDrag(false)
-            startX.current = 0
-            startY.current = 0
         }
-    }, [isClick, startX, startY]);
+    }, [isClick]);
     useEffect(() => {
         if (!isDrag) {
+            startX.current = 0
+            startY.current = 0
             setIsClick(false)
         }
-    }, [isDrag]);
+    }, [isDrag, startX, startY]);
 
     const getGhostSrc = async () => {
         if (!dropTarget) return null
         const canvas = await html2canvas(dropTarget, {scale: 1})
         return canvas.toDataURL()
     }
-    const setGhostPosFunc = (e: MouseEvent<HTMLElement>) => {
+    const setGhostPosFunc = useMemo(() => throttle((e: MouseEvent<HTMLElement>) => { // 경계에서 동시에 실행되는 Warning 문제 해결을 위한 throttle useMemo 안쓰면 빈도수가 줄 뿐 여전히 존재함
         setGhostStyle({
             top: e.clientY + 5,
             left: e.clientX + 5,
         })
-    }
+    }, 15), [])
+
+    useEffect(() => { // unmount 시 재생성 방지
+        return () => {
+            setGhostPosFunc.cancel();
+        };
+    }, [setGhostPosFunc]);
 
     // DragStart
     const handleDragStart = (e: MouseEvent<HTMLElement>) => { // 드래그 시작
@@ -72,11 +80,8 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
     }
     // WindowEnter
     const handleWindowEnter = (e: MouseEvent<HTMLElement>) => {
-        if (isDrag && e.buttons !== 1) { // e.buttons === 1: 좌클릭
-            handleDragEnd(e)
-            return
-        }
-        setGhostPosFunc(e)
+        // e.buttons === 1: 좌클릭
+        if (isDrag && e.buttons !== 1) handleDragEnd(e)
     }
 
     const handleDragStartEvent = {
@@ -86,6 +91,7 @@ const useDrop = ({dropTarget, onDragStart, onDragOver, onDragOut, onDragEnd, onD
             setIsClick(true)
             startX.current = e.clientX
             startY.current = e.clientY
+            if (onDragStartBefore) onDragStartBefore(e) // 드래그 전
         },
         onMouseUp: (e: MouseEvent<HTMLElement>) => { // 드래그 취소
             setIsClick(false)
