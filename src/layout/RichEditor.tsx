@@ -36,6 +36,7 @@ import useUndoRedo from "../editor/useUndoRedo.ts";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
+    padding-top: 80px;
     
     ${Card}, ${CardDivider} {
         min-width: var(--content-width);
@@ -61,6 +62,10 @@ const Container = styled(MainContainer)`
     // ${Section}:focus-within ${PlusButton}{
     //     display: flex;
     // }
+    
+    .not-allowed { // 자기 자신에 드롭 불가 스타일
+        cursor: none !important;
+    }
 `
 
 // 자식 컴포넌트에서 노출할 ref 타입
@@ -86,11 +91,10 @@ const RichEditor = () => {
     useEffect(() => {
         if (!isUndoRedo) { // 카드 history 저장
             set(cards)
-            return
+        } else { // undo | redo 업데이트
+            setCards(present.present)
+            setIsUndoRedo(false)
         }
-        
-        setCards(present.present) // undo | redo 업데이트
-        setIsUndoRedo(false)
     }, [isUndoRedo, cards]);
 
     // 카드 삭제
@@ -110,15 +114,21 @@ const RichEditor = () => {
             dispatch({type: 'DRAG_INDEX_UPDATE', payload: index})
         },
         onDragOver: (e?: MouseEvent<HTMLElement>) => {
-            const index = parseInt(e?.currentTarget.dataset.selectIndex ?? '-1')
-            dispatch({type: 'DROP_INDEX_UPDATE', payload: index})
+            const dragIndex = state.dragIndex
+            let dropIndex = parseInt(e?.currentTarget.dataset.selectIndex ?? '-1')
+
+            if (dropIndex + 1 == dragIndex || dragIndex == dropIndex) { // 이동할 위치가 자기 자신이면
+                dropIndex = -1
+            }
+            console.log(dragIndex)
+            dispatch({type: 'DROP_INDEX_UPDATE', payload: dropIndex})
         },
         onDragOut: () => {
             dispatch({type: 'DROP_INDEX_UPDATE', payload: -1})
         },
         onDrop: () => {
             const [dropIndex, dragIndex] = [state.dropIndex, state.dragIndex]
-            if (dropIndex === -1 || dropIndex + 1 === dragIndex) return // 이동 X
+            if (dropIndex === -1) return // 이동 X
 
             setCards(prev => { // 위치 이동
                 const copy = [...prev];
@@ -181,9 +191,9 @@ const RichEditor = () => {
                     {state.dropIndex === index? <CardDividerLine/>: null}
                     <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={tooltip.editorPlusBtn} />
                 </CardDivider>
-                {/* 드롭 영역 상|하 */}
-                <DropZone data-select-index={index-1}><TopDropZone/></DropZone>
-                <DropZone data-select-index={index}><BottomDropZone/></DropZone>
+                {/* 드롭 영역 상|하 (드래그 상태!==-1 && 현재 드롭할 곳이 아님 === -1) */}
+                <DropZone data-select-index={index-1}><TopDropZone className={(state.dragIndex !== -1) && (state.dropIndex === -1)? 'not-allowed':''} /></DropZone>
+                <DropZone data-select-index={index}><BottomDropZone className={(state.dragIndex !== -1)  && (state.dropIndex === -1)? 'not-allowed':''} /></DropZone>
             </Section>)
         })}
         {state.isTooltip? <TextToolbar />:null}
