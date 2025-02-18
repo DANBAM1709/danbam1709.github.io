@@ -16,7 +16,9 @@ const Container = styled(ContentEditable)`
     }
 `
 
-const TextArea = forwardRef<HTMLDivElement, ComponentPropsWithoutRef<'div'> & {children?: string}>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
+type Props = ComponentPropsWithoutRef<'div'> & {children?: string}
+
+const TextArea = forwardRef<HTMLDivElement, Props>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
     const [html, setHtml] = useState<string>('')
 
