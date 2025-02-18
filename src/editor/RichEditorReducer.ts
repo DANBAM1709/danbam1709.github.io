@@ -27,8 +27,12 @@ function reducer(state: State, action: Action): State {
         case 'TOGGLE_TOOLTIP':
             return {...state, isTooltip: action.payload}
         case 'DRAG_INDEX_UPDATE':
+            if (state.dragIndex === action.payload) // setState 처럼 값이 변하지 않으면 업데이트 되지 않도록 막음
+                return state
             return {...state, dragIndex: action.payload}
         case 'DROP_INDEX_UPDATE':
+            if (state.dropIndex === action.payload)
+                return state
             return {...state, dropIndex: action.payload}
         default:
             return state
