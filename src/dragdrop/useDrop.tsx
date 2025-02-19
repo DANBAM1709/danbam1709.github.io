@@ -24,7 +24,7 @@ interface DragHandler {
 }
 
 /**
- * dropTarget: 드롭 장소, onDragStart: 드롭 시작, onDragOver: 드롭 중, onDragOut: 드롭 영역 밖, onDrop: 드롭 완료 <br />
+ * dropTarget: 드롭 대상, onDragStart: 드롭 시작, onDragOver: 드롭 중, onDragOut: 드롭 영역 밖, onDrop: 드롭 완료 <br />
  * 파라미터 함수 정의시 (e?: MouseEvent<HTMLElement>)<br />
  * return isDrag:boolean, ...etc
  */
@@ -35,11 +35,13 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
     const [ghostSrc, setGhostSrc] = useState<string|null>(null) // 고스트 이미지 캡쳐 src
     const [ghostStyle, setGhostStyle] = useState<CSSProperties>({})
 
+    // 클릭 상태가 false 면 drag 상태도 false로 전환
     useEffect(() => {
         if (!isClick) {
             setIsDrag(false)
         }
     }, [isClick]);
+    // 드래그가 끝나면 시작 좌표 초기화 및 click 상태 해제
     useEffect(() => {
         if (!isDrag) {
             startX.current = 0
@@ -47,43 +49,43 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
             setIsClick(false)
         }
     }, [isDrag, startX, startY]);
-
-    const getGhostSrc = async () => {
-        if (!dropTarget) return null
-        const canvas = await html2canvas(dropTarget, {scale: 1})
-        return canvas.toDataURL()
-    }
+    // 마우스 좌표에 따라 ghost 위치를 업데이트 (throttle 적용)
     const setGhostPosFunc = useMemo(() => throttle((e: MouseEvent<HTMLElement>) => { // 경계에서 동시에 실행되는 Warning 문제 해결을 위한 throttle useMemo 안쓰면 빈도수가 줄 뿐 여전히 존재함
         setGhostStyle({
             top: e.clientY + 5, // SyntheticEvent 이벤트 종료 이후 재사용 pooling 될 때 내부 속성이 null 이 되지만 clientY 같은 원시값은 클로저에 캡쳐되어 안전하게 유지됨 
             left: e.clientX + 5,
         })
     }, 15), [])
-
-    useEffect(() => { // unmount 시 재생성 방지
+    // unmount 시 throttle 취소
+    useEffect(() => {
         return () => {
             setGhostPosFunc.cancel();
         };
     }, [setGhostPosFunc]);
+    // 드랍 대상 캡쳐
+    const getGhostSrc = async () => {
+        if (!dropTarget) return null
+        const canvas = await html2canvas(dropTarget, {scale: 1})
+        return canvas.toDataURL()
+    }
 
-    // DragStart
+    // ============================== 공통 함수 정의 ==============================
     const handleDragStart = (e: MouseEvent<HTMLElement>) => { // 드래그 시작
         getGhostSrc().then(src => setGhostSrc(src))
         setIsDrag(true)
         if (onDragStart) onDragStart(e)
     }
-    // DragEnd
-    const handleDragEnd = (e: MouseEvent<HTMLElement>) => {
+    const handleDragEnd = (e: MouseEvent<HTMLElement>) => { // 드래그 끝
         setIsDrag(false)
         if (onDragEnd) onDragEnd(e)
         if (onDragOut) onDragOut(e)
     }
-    // WindowEnter
-    const handleWindowEnter = (e: MouseEvent<HTMLElement>) => {
+    const handleWindowEnter = (e: MouseEvent<HTMLElement>) => { // 외부에서 윈도우 창으로
         // e.buttons === 1: 좌클릭
         if (isDrag && e.buttons !== 1) handleDragEnd(e)
     }
 
+    // ============================== return 이벤트 함수 ==============================
     const handleDragStartEvent = {
         onMouseDown: (e: MouseEvent<HTMLElement>) => { // 드래그 상태 확인
             e.preventDefault()
@@ -135,6 +137,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
         }
     }
 
+    // ============================== return 컴포넌트 ==============================
     // GhostImage 컴포
     const GhostImage = (props?: ComponentProps<'img'>): ReactElement => {
         const transparentImg = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="
