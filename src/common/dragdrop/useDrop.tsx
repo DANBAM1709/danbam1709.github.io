@@ -62,6 +62,10 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
             setGhostPosFunc.cancel();
         };
     }, [setGhostPosFunc]);
+    useEffect(() => { // dropTarget 이 변경될 경우 ghostSrc 설정
+        getGhostSrc().then(src => setGhostSrc(src))
+    }, [dropTarget]);
+
     // 드랍 대상 캡쳐
     const getGhostSrc = async () => {
         if (!dropTarget) return null
@@ -71,14 +75,12 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
 
     // ============================== 공통 함수 정의 ==============================
     const handleDragStart = (e: MouseEvent<HTMLElement>) => { // 드래그 시작
-        getGhostSrc().then(src => setGhostSrc(src))
         setIsDrag(true)
         setGhostPosFunc(e)
         if (onDragStart) onDragStart(e)
     }
     const handleDragEnd = (e: MouseEvent<HTMLElement>) => { // 드래그 끝
         setIsDrag(false)
-        setGhostSrc(null) // 이전 이미지 삭제
         if (onDragEnd) onDragEnd(e)
         if (onDragOut) onDragOut(e)
     }
