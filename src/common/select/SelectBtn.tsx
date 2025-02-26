@@ -1,6 +1,6 @@
 import {ComponentPropsWithoutRef, MouseEvent, ReactNode} from "react";
 import styled from "styled-components";
-import Button from "../base/Button.tsx";
+import Button from "../base-style/Button.tsx";
 import {useSelectContext} from "./SelectContext.ts";
 
 const Container = styled(Button)``
