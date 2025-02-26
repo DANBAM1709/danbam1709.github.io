@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import MainContainer from "../base/MainContainer.tsx";
-import Section from "../base/Section.tsx";
+import MainContainer from "../common/base-style/MainContainer.tsx";
+import Section from "../common/base-style/Section.tsx";
 import Plus from '../assets/svg/plus.svg?react'
 import Grab from '../assets/svg/grab.svg?react'
 import {
@@ -14,25 +14,27 @@ import {
     DragOption,
     PlusButton,
     TopDropZone
-} from "./RichEditorUI.ts";
-import {MouseEvent, useEffect, useRef, useState} from "react";
-import TooltipWithComponent from "../common/TooltipWithComponent.tsx";
-import CardSelector, {CardProps} from "../editor/CardSelector.tsx";
-import Draggable from "../dragdrop/Draggable.tsx";
-import DragDropProvider from "../dragdrop/DragDropProvider.tsx";
-import useDrop from "../dragdrop/useDrop.tsx";
-import DropZone from "../dragdrop/DropZone.tsx";
+} from "./RichEditor.ui.ts";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import TooltipWithComponent from "../common/component/TooltipWithComponent.tsx";
+import CardSelector, {CardProps} from "../features/editor/CardSelector.tsx";
+import Draggable from "../common/dragdrop/Draggable.tsx";
+import DragDropProvider from "../common/dragdrop/DragDropProvider.tsx";
+import DropZone from "../common/dragdrop/DropZone.tsx";
 import {useTooltip} from "../global/hook.ts";
-import SelectProvider from "../select/SelectProvider.tsx";
-import Options from "../select/Options.tsx";
+import SelectProvider from "../common/select/SelectProvider.tsx";
+import Options from "../common/select/Options.tsx";
 import Comment from '../assets/svg/comment.svg?react'
 import ColorPicker from '../assets/svg/color-picker.svg?react'
 import Trash from '../assets/svg/trash.svg?react'
 import Copy from '../assets/svg/copy.svg?react'
 import Swap from '../assets/svg/swap.svg?react'
-import TextToolbar from "../editor/TextToolbar.tsx";
-import {useRichEditContext} from "../editor/RichEditorReducer.ts";
-import useUndoRedo from "../editor/useUndoRedo.ts";
+import TextToolbar from "../features/editor/TextToolbar.tsx";
+import {useRichEditorContext} from "../common/contexts/LayoutContext.ts";
+import useCardDrag from "../features/editor/useCardDrag.ts";
+import useDataManager from "../features/editor/useDataManager.ts";
+import {flushSync} from "react-dom";
+import isEqual from "fast-deep-equal";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -63,8 +65,8 @@ const Container = styled(MainContainer)`
     //     display: flex;
     // }
     
-    .not-allowed { // 자기 자신에 드롭 불가 스타일
-        cursor: none !important;
+    .not-allowed { // 자기 자신에 드롭 불가
+        //cursor: default !important;
     }
 `
 
@@ -73,8 +75,11 @@ export interface GetDataHTMLElement extends HTMLElement {
     getData: () => string;
 }
 
+
+export type StageCardsFunc = (cards: CardProps[]) => CardProps[]
+
 const RichEditor = () => {
-    const cardRefs = useRef<(GetDataHTMLElement|null)[]>([]) // 카드 배열 ref [], 0: 제목
+    const cardRefs = useRef<{ [id: string]: GetDataHTMLElement | null }>({}); // 객체를 card.id로 관리
     const [cards, setCards] = useState<CardProps[]>([
         {id: crypto.randomUUID(), mode: 'title', data: '제목이옹'},
         {id: crypto.randomUUID(), mode: 'default', data: '1'},
@@ -82,82 +87,47 @@ const RichEditor = () => {
         {id: crypto.randomUUID(), mode: 'default', data: '3'},
         {id: crypto.randomUUID(), mode: 'default', data: '4'},
     ]) // 출력할 데이터
+    const [stagedCardsFunc, setStagedCardsFunc] = useState<StageCardsFunc>(()=>()=>[]) // 업데이트 될 카드 임시 저장
 
-    const tooltip = useTooltip()
-    const {state, dispatch} = useRichEditContext()
-    const {present, set, isUndoRedo, setIsUndoRedo} = useUndoRedo(cards)
+    const [isUpdate, setIsUpdate] = useState(false)
+    const {handleDrop, fromIndex, toIndex} = useCardDrag(cards, cardRefs.current, setStagedCardsFunc) // 카드 드래그&드랍 이동
+    const {editorDragBtn, editorPlusBtn} = useTooltip()
+    const {state: {isTooltip}} = useRichEditorContext()
+    useDataManager(cards, setCards, cardRefs.current)
 
-    // undo|redo 뒤로|앞으로
+    const updateCards = useCallback(() => {
+        setCards(pre => pre.map((card) => ({
+            id: card.id,
+            mode: card.mode,
+            data: cardRefs.current[card.id]?.getData() ?? card.data,
+        })))
+    }, [])
+
     useEffect(() => {
-        if (!isUndoRedo) { // 카드 history 저장
-            set(cards)
-        } else { // undo | redo 업데이트
-            setCards(present.present)
-            setIsUndoRedo(false)
-        }
-    }, [isUndoRedo, cards]);
+        if (!stagedCardsFunc) return
+        updateCards()
+        setIsUpdate(true)
+    }, [stagedCardsFunc]);
 
-    // 카드 삭제
     useEffect(() => {
-        const index = cardRefs.current.findIndex(ref => ref === state.deleteEl);
-        if (index > 0) {
-            setCards(card => card.filter((_, i) => i !== index))
-            cardRefs.current[index-1]?.focus()
+        if (isUpdate) {
+            setCards(pre => stagedCardsFunc(pre))
+            setIsUpdate(false)
         }
-    }, [state.deleteEl]);
+    }, [isUpdate]);
 
-    // 드래그 앤 드롭 정의
-    const handleDrop = useDrop({
-        dropTarget: cardRefs.current[state.dragIndex],
-        onDragStartBefore: (e?: MouseEvent<HTMLElement>) => {
-            const index = parseInt(e?.currentTarget.dataset.targetIndex ?? '0')
-            dispatch({type: 'DRAG_INDEX_UPDATE', payload: index})
-        },
-        onDragOver: (e?: MouseEvent<HTMLElement>) => {
-            const dragIndex = state.dragIndex
-            let dropIndex = parseInt(e?.currentTarget.dataset.selectIndex ?? '-1')
-
-            if (dropIndex + 1 == dragIndex || dragIndex == dropIndex) { // 이동할 위치가 자기 자신이면
-                dropIndex = -1
-            }
-            console.log(dragIndex)
-            dispatch({type: 'DROP_INDEX_UPDATE', payload: dropIndex})
-        },
-        onDragOut: () => {
-            dispatch({type: 'DROP_INDEX_UPDATE', payload: -1})
-        },
-        onDrop: () => {
-            const [dropIndex, dragIndex] = [state.dropIndex, state.dragIndex]
-            if (dropIndex === -1) return // 이동 X
-
-            setCards(prev => { // 위치 이동
-                const copy = [...prev];
-                const [element] = copy.splice(dragIndex, 1);
-                const insertIndex = dragIndex <= dropIndex ? dropIndex : dropIndex + 1;
-                copy.splice(insertIndex, 0, element);
-                return copy;
-            });
-        },
-    })
 
     const handleAddCard = (index: number) => ({
         onClick: () => {
-            const addIndex = index + 1
+            // const addIndex = index + 1
         }
     })
 
-    const onDeleteCard = (index: number) => dispatch({type: 'DELETE_CARD', payload: cardRefs.current[index]!})
-
-    // 카드 데이터 변경
-    const onCardsUpdate = () => {
-        setCards(prev => {
-            return prev.map((card, index) => ({
-                id: card.id,
-                mode: card.mode,
-                data: cardRefs.current[index]?.getData() ?? "", // getData()가 undefined면 빈 문자열을 사용
-            }));
-        });
-    }
+    const handleDeleteCard = (index: number) => ({
+        onClick: () => {
+            // onDeleteCard(index)
+        }
+    })
 
     return (<DragDropProvider useDrop={handleDrop}><Container>
         {cards.map((card, index) => {
@@ -167,11 +137,11 @@ const RichEditor = () => {
                     {index !== 0? <ActionTool>
                         <Draggable data-target-index={index}><SelectProvider>
                                 {/* DragBtn = SelectBtn */}
-                                <TooltipWithComponent Component={<DragButton><Grab /></DragButton>} summary={tooltip.editorDragBtn} />
+                                <TooltipWithComponent Component={<DragButton><Grab /></DragButton>} summary={editorDragBtn} />
                                 <Options>
                                     {/* DragOption = Option */}
                                     <DragOption><Comment />댓글</DragOption>
-                                    <DragOption onClick={()=>onDeleteCard(index)}><Trash />삭제</DragOption>
+                                    <DragOption {...handleDeleteCard(index)}><Trash />삭제</DragOption>
                                     <DragOption><Copy />복제</DragOption>
                                     <DragOption><Swap />전환</DragOption>
                                     <SelectProvider>
@@ -184,19 +154,25 @@ const RichEditor = () => {
                         </SelectProvider></Draggable>
                     </ActionTool>: null}
                     {/* 카드 선택 */}
-                    <Card><CardSelector ref={el => cardRefs.current[index]=el} mode={card.mode} data={card.data} /></Card>
+                    <Card><CardSelector ref={el => {
+                        if (el) {
+                            cardRefs.current[card.id] = el
+                        } else { // 언마운트시 실행된다는데 확인 필요
+                            delete cardRefs.current[card.id]
+                        }
+                    }} mode={card.mode} data={card.data} /></Card>
                 </DraggableCard>
                 {/* 카드 나누는 기준 + 카드 추가 */}
                 <CardDivider>
-                    {state.dropIndex === index? <CardDividerLine/>: null}
-                    <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={tooltip.editorPlusBtn} />
+                    {toIndex === index? <CardDividerLine/>: null}
+                    <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={editorPlusBtn} />
                 </CardDivider>
                 {/* 드롭 영역 상|하 (드래그 상태!==-1 && 현재 드롭할 곳이 아님 === -1) */}
-                <DropZone data-select-index={index-1}><TopDropZone className={(state.dragIndex !== -1) && (state.dropIndex === -1)? 'not-allowed':''} /></DropZone>
-                <DropZone data-select-index={index}><BottomDropZone className={(state.dragIndex !== -1)  && (state.dropIndex === -1)? 'not-allowed':''} /></DropZone>
+                <DropZone data-select-index={index-1}><TopDropZone className={(fromIndex !== -1) && (toIndex === -1)? 'not-allowed':''} /></DropZone>
+                <DropZone data-select-index={index}><BottomDropZone className={(fromIndex !== -1)  && (toIndex === -1)? 'not-allowed':''} /></DropZone>
             </Section>)
         })}
-        {state.isTooltip? <TextToolbar />:null}
+        {isTooltip? <TextToolbar />:null}
     </Container></DragDropProvider>)
 }
 
