@@ -69,7 +69,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
     // 드랍 대상 캡쳐
     const getGhostSrc = async () => {
         if (!dropTarget) return null
-        const canvas = await html2canvas(dropTarget, {scale: 1})
+        const canvas = await html2canvas(dropTarget, {logging: false, scale: 1})
         return canvas.toDataURL()
     }
 
