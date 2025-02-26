@@ -6,7 +6,8 @@ import {eventManager} from "../../global/event.ts";
 useUndoRedo<T> 명시할 것 <br />
 data: 저장할 데이터 변경됨을 인식하고 history 에 저장됨 <br />
 setData: 데이터를 저장할 것을 가져오기 <br />
-getLatestData: () => T[] 최근 데이터 가져오기 업데이트 X
+getLatestData: () => T[] 최근 데이터 가져오기(데이터만!) <br />
+return {history: data[], index: 현재 위치}
  */
 const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestData: ()=>T) => {
     const [isUndo, setIsUndo] = useState<boolean>(false) // 뒤로
@@ -68,7 +69,7 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
     useEffect(() => {
         if (!isUndoRedo) return
 
-        setIsLatestIndex(false)
+        setIsLatestIndex(false) // 아래 history 변경이 아닌 것을 실행시키기 위한 임시 값 어차피 그 아래에 true 가능하게 해뒀음
         if (isUndo) {
             setIndex(preIndex => {
                 const newIndex = preIndex-1
@@ -112,7 +113,7 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
         })
     }, []);
 
-    return {}
+    return {history, index}
 }
 
 export default useUndoRedo
