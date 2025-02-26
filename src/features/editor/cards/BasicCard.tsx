@@ -1,17 +1,17 @@
 import styled from "styled-components";
-import TextArea from "../../common/TextArea.tsx";
+import TextArea from "../../../common/component/TextArea.tsx";
 import {forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
-import {GetDataHTMLElement} from "../../layout/RichEditor.tsx";
-import {useRichEditContext} from "../RichEditorReducer.ts";
+import {GetDataHTMLElement} from "../../../layout/RichEditor.tsx";
+import {useRichEditorContext} from "../../../common/contexts/LayoutContext.ts";
 
 const BasicTextArea = styled(TextArea)`
     display: block;
 `
 
-const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children}, ref) => {
+const BasicCard = forwardRef<GetDataHTMLElement, {html: string}>(({html}, ref) => {
     const targetRef = useRef<HTMLDivElement>(null)
     const selection = useMemo(() => window.getSelection(), []) // contenteditable 이 빈 상태에서 랜더링되면 랜더링 전 가져온 selection 은 해당 요소에서 null 이 됨
-    const {dispatch} = useRichEditContext()
+    const {dispatch} = useRichEditorContext()
 
     useImperativeHandle(ref, () => {
         if (targetRef.current) {
@@ -31,11 +31,12 @@ const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children
                 down: e.key === 'ArrowDown', // 블록 이동 아래로
             }
 
-            // <- backspace && empty
-            if (con.delete && con.empty) {
-                e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
-                dispatch({type: 'DELETE_CARD', payload: e.currentTarget})
-            }
+            // <- backspace && empty (보류)
+            // if (con.delete && con.empty) {
+            //     e.preventDefault()
+            //     e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
+            //     dispatch({type: 'DELETE_CARD', payload: e.currentTarget})
+            // }
 
             // 방향키 Up
             if (con.up) {
@@ -52,6 +53,7 @@ const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children
                 const condition2 = rangeTop !== 0 && (rangeTop - top) < 5 // 커서와 끝의 오차 임의값 5
 
                 if (condition1 || condition2) {
+                    e.preventDefault()
                     console.log('위로')
                 }
             }
@@ -68,6 +70,7 @@ const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children
                 const condition2 = (bottom - rangeBottom) < 5 // 커서와 끝의 오차 임의값 5
 
                 if (condition1 || condition2) {
+                    e.preventDefault()
                     console.log('아래로')
                 }
             }
@@ -77,6 +80,6 @@ const BasicStyle = forwardRef<GetDataHTMLElement, {children: string}>(({children
         onBlur: () => dispatch({type: 'TOGGLE_TOOLTIP', payload: false}),
     }
 
-    return (<BasicTextArea ref={targetRef} {...handleTextArea}>{children ?? ''}</BasicTextArea>)})
+    return (<BasicTextArea ref={targetRef} {...handleTextArea}>{html}</BasicTextArea>)})
 
-export default BasicStyle
+export default BasicCard
