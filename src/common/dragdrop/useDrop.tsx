@@ -73,10 +73,12 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
     const handleDragStart = (e: MouseEvent<HTMLElement>) => { // 드래그 시작
         getGhostSrc().then(src => setGhostSrc(src))
         setIsDrag(true)
+        setGhostPosFunc(e)
         if (onDragStart) onDragStart(e)
     }
     const handleDragEnd = (e: MouseEvent<HTMLElement>) => { // 드래그 끝
         setIsDrag(false)
+        setGhostSrc(null) // 이전 이미지 삭제
         if (onDragEnd) onDragEnd(e)
         if (onDragOut) onDragOut(e)
     }
@@ -100,7 +102,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
             handleDragEnd(e)
         },
         onMouseMove: (e: MouseEvent<HTMLElement>) => { // 드래그 영역이 클 때를 대비한 드래그 검증
-            if (!isClick) return // 좌 클릭 상태가 아니라면
+            if (!isClick || isDrag) return // 좌 클릭 상태가 아니라면 || 이미 드래그 시작된 상태라면
             const deltaX = Math.abs(e.clientX - startX.current)
             const deltaY = Math.abs(e.clientY - startY.current)
             if (deltaX + deltaY > 10) { // 드래그 상태로 감지
@@ -108,7 +110,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
             }
         },
         onMouseLeave: (e: MouseEvent<HTMLElement>) => { // 드래그 시작
-            if(!isClick || isDrag) return // 클릭 상태가 아니라면 + 이미 드래그 시작된 상태라면
+            if(!isClick || isDrag) return // 클릭 상태가 아니라면 || 이미 드래그 시작된 상태라면
             handleDragStart(e)
         }
     }
