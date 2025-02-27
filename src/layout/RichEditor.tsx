@@ -31,8 +31,8 @@ import Copy from '../assets/svg/copy.svg?react'
 import Swap from '../assets/svg/swap.svg?react'
 import TextToolbar from "../features/editor/TextToolbar.tsx";
 import {useRichEditorContext} from "../common/contexts/LayoutContext.ts";
-import useCardDrag from "../features/editor/useCardDrag.ts";
-import useUndoRedo from "../common/history/useUndoRedo.ts";
+import useCardDragDrop from "../features/editor/useCardDragDrop.ts";
+import useHistory from "../common/history/useHistory.ts";
 import {eventManager} from "../global/event.ts";
 import isEqual from "fast-deep-equal";
 import {CustomTextAreaElement, isCustomTextAreaElement} from "../common/component/TextArea.tsx";
@@ -99,7 +99,7 @@ const RichEditor = () => {
     const [stagedCardsFunc, setStagedCardsFunc] = useState<StageCardsFunc|null>(null) // 카드 업데이트 방식 function 저장
     const [canStageUpdate, setCanStageUpdate] = useState(false) // 카드 업데이트 step 나누기 위한 flag
 
-    const {handleDrop, fromIndex, toIndex} = useCardDrag(cards, cardRefs.current, setStagedCardsFunc) // 카드 드래그&드랍 이동
+    const {handleDrop, fromIndex, toIndex} = useCardDragDrop(cards, cardRefs.current, setStagedCardsFunc) // 카드 드래그&드랍 이동
 
     // const [cursorStage, setCursorStage] = useState<(Cursor|null)[]>([])
     // const [cursorHistory, setCursorHistory] = useState<(Cursor|null)[]>([])
@@ -129,6 +129,9 @@ const RichEditor = () => {
     //         selection?.addRange(range)
     //     }
     // }, [])
+    // const getLatestData = useCallback(() => {
+    //
+    // }, [])
     const getLatestCards = useCallback(() => {
         if (!cards) return cards
         return (cards.map((card) => ({
@@ -152,12 +155,7 @@ const RichEditor = () => {
     }, [canStageUpdate]);
 
     /* ========== History 설정 ========== */
-    // const [keyPrefix, setKeyPrefix] = useState<string>('') // key 에 추가해서 변경될 때 재 랜더링 감지
-    const forceUpdate = useCallback((data: CardProps[]) => { //
-        setCards([...data])
-        // setKeyPrefix(Date.now().toString()) // 키값을 변경시켜서 강제 랜더링 하기
-    }, [])
-    const {updateHistory} = useUndoRedo<CardProps[]>(cards, setCards, getLatestCards)
+    const {present, updateHistory} = useHistory<CardProps[]>(cards, setCards, getLatestCards)
 
     // history 업데이트 필요할 경우 감지
     const [canUpdateHistory, setCanUpdateHistory] = useState<boolean>(false)
