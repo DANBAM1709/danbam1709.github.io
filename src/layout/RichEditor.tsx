@@ -15,7 +15,18 @@ import {
     PlusButton,
     TopDropZone
 } from "./RichEditor.ui.ts";
-import {MouseEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import {
+    FocusEvent,
+    KeyboardEvent,
+    CompositionEvent,
+    MouseEvent,
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState, SyntheticEvent
+} from "react";
 import TooltipWithComponent from "../common/component/TooltipWithComponent.tsx";
 import CardSelector, {CardProps} from "../features/editor/CardSelector.tsx";
 import Draggable from "../common/dragdrop/Draggable.tsx";
@@ -31,13 +42,10 @@ import Copy from '../assets/svg/copy.svg?react'
 import Swap from '../assets/svg/swap.svg?react'
 import TextToolbar from "../features/editor/TextToolbar.tsx";
 import {useRichEditorContext} from "../common/contexts/LayoutContext.ts";
-import useCardDragDrop from "../features/editor/useCardDragDrop.ts";
 import useHistory from "../common/history/useHistory.ts";
-import {eventManager} from "../global/event.ts";
 import isEqual from "fast-deep-equal";
-import {CustomTextAreaElement, isCustomTextAreaElement} from "../common/component/TextArea.tsx";
-import useRichHistory from "../features/editor/useRichHistory.ts";
 import useDrop from "../common/dragdrop/useDrop.tsx";
+import {isCustomTextAreaElement} from "../common/component/TextArea.tsx";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -117,15 +125,15 @@ const RichEditor = () => {
     const [scroll, setScroll] = useState<Scroll>({x: 0, y: 0})
 
     // ------ 최신 데이터 가져오는 함수 ------
-    const getLatestCards = useCallback(() => {
+    const getLatestCards = useCallback(() => { // 최신 카드 데이터
         if (!cards) return cards
         return (cards.map((card) => ({
             data: cardRefs.current[card.id]?.getData() ?? card.data,
             id: card.id,
             mode: card.mode,
         })))
-    }, [cards])
-    const getLatestCursor = useCallback(() => {
+    }, [cards]);
+    const getLatestCursor = useCallback(() => { // 최신 커서 위치
         if (!selection || selection.rangeCount === 0) return null
         const range = selection.getRangeAt(0)
         const {startContainer, startOffset, endContainer, endOffset} = range
@@ -135,14 +143,14 @@ const RichEditor = () => {
             endContainer: endContainer,
             endOffset: endOffset
         }
-    }, [selection])
-    const getLatestScroll = useCallback((): Scroll => {
+    }, [selection]);
+    const getLatestScroll = useCallback((): Scroll => { // 최신 스크롤 위치
         const {scrollX, scrollY} = window
         return {
             x: scrollX,
             y: scrollY
         }
-    }, [])
+    }, []);
     
     // 매개변수 latestCards, latestCursor 를 받아 사용하는 공통 함수
     const getDataCommonFunc = useCallback((latestCards: CardProps[], latestCursor: Cursor, latestScroll: Scroll): Data => {
@@ -156,9 +164,9 @@ const RichEditor = () => {
         }
     }, [currentData])
     // 모든 최신 데이터 가져오기
-    const getLatestData = useCallback(():Data => getDataCommonFunc(getLatestCards(), getLatestCursor(), getLatestScroll()), [getDataCommonFunc, getLatestCards, getLatestCursor])
+    const getLatestData = useCallback(():Data => getDataCommonFunc(getLatestCards(), getLatestCursor(), getLatestScroll()), [getDataCommonFunc, getLatestCards, getLatestCursor, getLatestScroll])
     // 카드 업데이트시 데이터 업데이트
-    const getUpdateData = useCallback(():Data => getDataCommonFunc(cards, getLatestCursor(), getLatestScroll()), [getDataCommonFunc, cards, getLatestCursor])
+    const getUpdateData = useCallback(():Data => getDataCommonFunc(cards, cursor, scroll), [cards, cursor, getDataCommonFunc, scroll])
 
     useEffect(() => { // 카드 변경으로 인한 상태 업데이트
         if (!cards || cards.length === 0) return
@@ -174,7 +182,7 @@ const RichEditor = () => {
         setCards(data.cards)
     }, [data])
 
-    const {history, present, updateHistory} = useHistory<Data>(data, setData, getLatestData)
+    const {present, updateHistory} = useHistory<Data>(data, setData, getLatestData)
 
     useEffect(() => { // 위에서 해당값을 사용하기 위함
         setCurrentData(present)
@@ -183,6 +191,14 @@ const RichEditor = () => {
         setIsDataUpdate(false)
         setIsCardUpdate(false)
     }, [present]);
+
+    const [prevUnicode, setPrevUnicode] = useState<number>(-1) // 한글 삭제 감지를 위함
+    const [isInValidation, setIsInValidation] = useState<boolean>(false) // beforeInputTrigger 가 되는지 여부를 감지하는 검증 단계로 들어가는 그런 것
+    const [isEraseMode, setIsEraseMode] = useState<boolean>(false) // 삭제 모드인가용?
+
+    useLayoutEffect(() => { // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
+        updateHistory(getLatestData())
+    }, [isEraseMode]);
 
     /* ========== 드래그 & 드랍 ========== */
     const [fromIndex, setFromIndex] = useState(-1) // 드래그 할 위치
@@ -382,11 +398,53 @@ const RichEditor = () => {
         }
     })
 
-    const handleCard = {
+    const handleCard = { // history 업데이트를 위한 이벤트 핸들러
         onBlur: () => { // 임시
             updateHistory(getLatestData())
-            // setCursor(null)
-            // setScroll(pre=>pre)
+        },
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+            if (e.key === 'Tab') {
+                e.preventDefault()
+                updateHistory(getLatestData())
+            }
+            if (e.key === 'Backspace' || e.key === 'Delete') { // 조합형 문자가 아닌데 글 지울 때
+                setIsEraseMode(true) // 삭제
+            }
+        },
+        onBeforeInput: (e: InputEvent) => { // 검증해봤는데 글 쓰는 중임
+            setIsInValidation(false) // 초기화
+            
+            if (e.data && e.data.length > 0) { // 조합형 문자가 아닐 때
+                setIsEraseMode(false)  // 쓰는 중임
+            }
+        },
+        onInput: () => {
+            if (isInValidation) { // 글 삭제인 경우. 아 문자 한 개 거슬려..
+                setIsEraseMode(true) // 삭제
+                setIsInValidation(false) // 초기화
+            }
+        },
+        onCompositionStart: () => { // 화면 랜더링 전이라는 거 같음
+            setPrevUnicode(-1) // 무조건 -1 일 수 밖에...
+        },
+        onCompositionUpdate: (e: CompositionEvent<HTMLDivElement>) => { // 화면 랜더링 전이라는 거 같음
+            const charCode = e.data.charCodeAt(0)
+            const uniCode = isNaN(charCode)? -1: charCode
+
+            setPrevUnicode(uniCode)
+
+            if (uniCode < 0) {
+                setIsEraseMode(true) // 삭제
+                return
+            }
+
+            if (prevUnicode === uniCode) return;
+
+            if (prevUnicode < uniCode) {
+                setIsEraseMode(false) // 쓰는 중
+            } else {
+                setIsInValidation(true)
+            }
         }
     }
 
@@ -415,13 +473,13 @@ const RichEditor = () => {
                         </SelectProvider></Draggable>
                     </ActionTool>: null}
                     {/* 카드 선택 */}
-                    <Card><CardSelector ref={el => {
+                    <Card {...handleCard}><CardSelector ref={el => {
                         if (el) {
                             cardRefs.current[card.id] = el
                         } else { // 언마운트시 실행된다는데 인 필요
                             delete cardRefs.current[card.id]
                         }
-                    }} mode={card.mode} data={card.data} {...handleCard}
+                    }} mode={card.mode} data={card.data}
                     /></Card>
                 </DraggableCard>
                 {/* 카드 나누는 기준 + 카드 추가 */}
