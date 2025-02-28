@@ -1,4 +1,4 @@
-import {Dispatch, SetStateAction, useCallback, useEffect, useLayoutEffect, useState} from "react";
+import {Dispatch, SetStateAction, useCallback, useEffect, useState} from "react";
 import isEqual from "fast-deep-equal";
 import {eventManager} from "../../global/event.ts";
 
@@ -7,9 +7,9 @@ useUndoRedo<T> 명시할 것 <br />
 data: 저장할 데이터 변경됨을 인식하고 history 에 저장됨 <br />
 setData: 데이터를 저장할 것을 가져오기 <br />
 getLatestData: () => T[] 최근 데이터 가져오기(데이터만!) <br />
-return {updateHistory: (T)=>void 상태 변경 없이 history 만 업데이트 하는 함수}
+return {present: 선택된 현 상태 data, updateHistory: (T)=>void 상태 변경 없이 history 만 업데이트 하는 함수}
  */
-const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestData: ()=>T) => {
+const useHistory = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestData: ()=>T) => {
     const [isUndo, setIsUndo] = useState<boolean>(false) // 뒤로
     const [isRedo, setIsRedo] = useState<boolean>(false) // 앞으로
     const [isUndoRedo, setIsUndoRedo] = useState<boolean>(false)
@@ -17,7 +17,8 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
     const [index, setIndex] = useState<number>(-1)
     const [canHistoryUpdate, setCanHistoryUpdate] = useState<boolean>(true) // history 추가 가능 여부
     const [isLatestIndex, setIsLatestIndex] = useState<boolean>(true)
-    
+    const [present, setPresent] = useState<T|null>(null)
+
     const [hasLatestDataUpdate, setHasLatestDataUpdate] = useState<boolean>(false) // 뒤로 가기를 하면서 최신 데이터를 history 에 업로드 할 경우 setData의 값이 변경되지 않기 때문에 일어나지 않는 리랜더링 문제 해결을 위함  
 
     /* =============== 업데이트 함수 정의 =============== */
@@ -38,12 +39,17 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
     }, [index, isLatestIndex])
 
     /* =============== 상태 감지 정의 =============== */
+    useEffect(() => { // 외부로 보낼 현 상태 데이터 업데이트
+        if (!history || history.length === 0 || index < 0) return
+        setPresent(history[index])
+    }, [history, index]);
+
     useEffect(() => { // 데이터 변경에 따른 업데이트
         if (!data || !canHistoryUpdate) {
             setCanHistoryUpdate(true)
             return
         }
-        
+
         updateHistory(data)
     }, [data])
 
@@ -100,6 +106,9 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
 
         setIsLatestIndex(false) // 아래 index 변경으로 인한 것을 실행시키기 위한 임시 값 어차피 그 아래에 true 가능하게 해뒀음
         if (isUndo) {
+            setCanHistoryUpdate(false)
+            setData(getLatestData())
+
             setIndex(preIndex => {
                 const newIndex = preIndex-1
                 return (newIndex > 0)? newIndex: 0
@@ -116,7 +125,7 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
         setIsUndoRedo(false)
     }, [isUndoRedo]);
 
-    useLayoutEffect(() => { // 인덱스 변경될 경우
+    useEffect(() => { // 인덱스 변경될 경우
         if (index < 0 || history.length === 0) return
 
         if (!isLatestIndex) { // index 변경으로 인한 것이라면
@@ -146,7 +155,7 @@ const useUndoRedo = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatest
         }
     }, []);
 
-    return {updateHistory}
+    return {history, present, updateHistory}
 }
 
-export default useUndoRedo
+export default useHistory
