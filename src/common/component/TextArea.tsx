@@ -1,5 +1,15 @@
 import styled from 'styled-components';
-import {ComponentPropsWithoutRef, FocusEvent, forwardRef, KeyboardEvent, useEffect, useMemo, useState} from "react";
+import {
+    ComponentPropsWithoutRef,
+    FocusEvent,
+    forwardRef,
+    KeyboardEvent,
+    useEffect,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState
+} from "react";
 import ContentEditable, {ContentEditableEvent} from "react-contenteditable";
 
 const Container = styled(ContentEditable)`
@@ -16,15 +26,40 @@ const Container = styled(ContentEditable)`
     }
 `
 
+export interface CustomTextAreaElement extends HTMLDivElement {
+    setInnerHTML(newHTML: string): void;
+}
 type Props = ComponentPropsWithoutRef<'div'> & {children?: string}
 
-const TextArea = forwardRef<HTMLDivElement, Props>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
+const TextArea = forwardRef<CustomTextAreaElement, Props>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
     const [html, setHtml] = useState<string>('')
+    const textAreaRef = useRef<HTMLDivElement>(null)
+    const [isChildrenChange, setIsChildrenChange] = useState(false) // 토글 트리거임
+
+    useImperativeHandle(ref, () => {
+        if (textAreaRef.current) {
+            return Object.assign(textAreaRef.current, {
+                setInnerHTML: (newHTML: string) => {
+                    setHtml(newHTML)
+                }
+            }) as CustomTextAreaElement
+        }
+        throw new Error('TextArea ref error!')
+    });
 
     useEffect(() => {
         if (children) setHtml(children ?? '')
+        setIsChildrenChange(true)
     }, [children]);
+
+    useEffect(() => {
+        setIsChildrenChange(false)
+        if (!isChildrenChange) return
+
+        const event = new CustomEvent('customTextAreaChange', {detail: html.length})
+        document.dispatchEvent(event) // html 변경시 이벤트
+    }, [html]);
 
     const handler = {
         onChange: (e: ContentEditableEvent) => {
@@ -34,12 +69,15 @@ const TextArea = forwardRef<HTMLDivElement, Props>(({children, onChange, onFocus
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Tab') { // Tab -> /t
                 e.preventDefault()
+
                 if (!selection) return
                 const range = selection.getRangeAt(0)
                 range.deleteContents() // 선택영역 삭제
                 const tabNode = document.createTextNode('\t')
                 range.insertNode(tabNode)
                 range.setStartAfter(tabNode) // 커서 이동
+
+                setHtml(e.currentTarget.innerHTML ?? '')
             }
 
             if (e.key === 'Escape') { // ESC 선택영역 없애기
@@ -63,11 +101,17 @@ const TextArea = forwardRef<HTMLDivElement, Props>(({children, onChange, onFocus
     }
 
     return (
-        <Container innerRef={ref ?? undefined} tabIndex={0} tagName={'div'}
+        <Container innerRef={textAreaRef} tabIndex={0} tagName={'div'}
                    suppressContentEditableWarning={true} html={html}
                    {...handler} {...props}
         />
     )
 })
+
+// el: HTMLElement <br />
+// return CustomTextArea 인지 확인
+// export const isCustomTextAreaElement = (el: HTMLElement): el is CustomTextAreaElement => {
+//     return 'setInnerHTML' in el
+// }
 
 export default TextArea
