@@ -92,7 +92,6 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
     // ============================== return 이벤트 함수 ==============================
     const handleDragStartEvent = {
         onMouseDown: (e: MouseEvent<HTMLElement>) => { // 드래그 상태 확인
-            e.preventDefault()
             if (e.button !== 0) return // 좌 클릭이 아니라면
             setIsClick(true)
             startX.current = e.clientX
