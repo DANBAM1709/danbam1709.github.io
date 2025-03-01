@@ -17,11 +17,12 @@ import {
 } from "./RichEditor.ui.ts";
 import {
     CompositionEvent,
+    FocusEvent,
     FormEvent,
     KeyboardEvent as ReactKeyboardEvent,
     MouseEvent,
     useCallback,
-    useEffect, useLayoutEffect,
+    useEffect,
     useMemo,
     useRef,
     useState
@@ -44,7 +45,8 @@ import {useRichEditorContext} from "../common/contexts/LayoutContext.ts";
 import useHistory from "../common/history/useHistory.ts";
 import isEqual from "fast-deep-equal";
 import useDrop from "../common/dragdrop/useDrop.tsx";
-import {isCustomTextAreaElement} from "../common/component/TextArea.tsx";
+import {CustomTextAreaElement} from "../common/component/TextArea.tsx";
+import {eventManager} from "../global/event.ts";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -127,20 +129,17 @@ const RichEditor = () => {
             mode: card.mode,
         })))
     }, [cards]);
-    const getLatestCursor = useCallback(():Cursor => { // 최신 커서 위치
-        if (!selection || selection.rangeCount === 0) return null
-        const range = selection.getRangeAt(0)
-        const {startContainer, startOffset, endContainer, endOffset} = range
-
-        // cardRefs가 배열일 경우, 각 ref 를 순회하며 커서가 그 요소나 하위에 포함되는지 체크
-        const refs = Object.values(cardRefs.current)
-        const isInsideCard = refs.some(ref => ref?.contains(startContainer));
-        if (!isInsideCard) return null;
-
-        // while (node )
-
-
-    }, [selection]);
+    // const getLatestCursor = useCallback(():Cursor => { // 최신 커서 위치
+    //     if (!selection || selection.rangeCount === 0) return null
+    //     const range = selection.getRangeAt(0)
+    //     const {startContainer, startOffset, endContainer, endOffset} = range
+    //
+    //     // cardRefs가 배열일 경우, 각 ref 를 순회하며 커서가 그 요소나 하위에 포함되는지 체크
+    //     const refs = Object.values(cardRefs.current)
+    //     const isInsideCard = refs.some(ref => ref?.contains(startContainer));
+    //     if (!isInsideCard) return null;
+    //
+    // }, [selection]);
     const getLatestScroll = useCallback((): Scroll => { // 최신 스크롤 위치
         const {scrollX, scrollY} = window
         return {
@@ -186,38 +185,27 @@ const RichEditor = () => {
 
         setIsCursorUpdate(true)
     }, [data])
+    useEffect(() => { // data 변경으로 인한 카드 업데이트 후
+        eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
+            setIsCursorUpdate(false)
+            if (isCursorUpdate) {
 
-    // useEffect(() => {
-    //     if(isCursorUpdate) {
-    //         const startMarker = document.getElementById('cursor-start');
-    //         const endMarker = document.getElementById('cursor-end');
-    //         if (startMarker && endMarker) {
-    //             const range = document.createRange();
-    //             range.setStartAfter(startMarker); // startMarker 바로 뒤부터 선택
-    //             range.setEndBefore(endMarker);      // endMarker 바로 앞까지 선택
-    //
-    //             selection?.removeAllRanges();
-    //             selection?.addRange(range);
-    //         }
-    //     }
-    //     setIsCursorUpdate(false)
-    // }, [isCursorUpdate]);
+            }
+        })
 
+        return () => eventManager.removeEventListener('customTextAreaChange', 'RichEditor')
+    }, [isCursorUpdate]);
+
+    const [currentEditable, setCurrentEditable] = useState<CustomTextAreaElement|null>(null) // 현재 편집 중인 요소
     const {present, updateHistory, undo, redo} = useHistory<Data>(data, setData, getLatestData)
 
-    // const updateHistoryReplace = useCallback(() => { // 데이터를 교체할 필요성이 있을 때
-    //     const latestData = getLatestData(true)
-    //     if (latestData && present && isEqual(latestData.cards, present.cards)) {
-    //         updateHistory(latestData);
-    //     } else {
-    //         updateHistory(getLatestData())
-    //     }
-    // }, [getLatestData, present, updateHistory]);
-
-    useEffect(() => { // 위에서 해당값을 사용하기 위함
+    // 위에서 present 데이터 사용하기 위함
+    useEffect(() => {
         setCurrentData(present)
     }, [present]);
-    useEffect(() => { // 설정 초기화 setData 되기 전에 present 먼저 변경되므로 OK
+    
+    // 설정 초기화 setData 되기 전에 present 먼저 변경되므로 OK
+    useEffect(() => {
         setIsDataUpdate(false)
         setIsCardUpdate(false)
     }, [present]);
@@ -226,49 +214,29 @@ const RichEditor = () => {
     const [isInValidation, setIsInValidation] = useState<boolean>(false) // beforeInputTrigger 가 되는지 여부를 감지하는 검증 단계로 들어가는 그런 것
     const [isEraseMode, setIsEraseMode] = useState<boolean|null>(null) // 삭제 모드인가용?
 
-    useEffect(() => { // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
+    // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
+    useEffect(() => {
         if (isEraseMode === null) return
-        updateHistory(getLatestData()) //초기 상태가 아닐 때}
+        updateHistory(getLatestData(true)) //초기 상태가 아닐 때}
     }, [isEraseMode]);
 
-    // useEffect(() => {
-    //     console.log('돌겠당 ㅎㅎ')
-    //     if (isRender && isCursorUpdate) {
-    //         console.log('되긴하나..?')
-    //         const startMarker = document.getElementById('cursor-start');
-    //         const endMarker = document.getElementById('cursor-end');
-    //         console.log(startMarker)
-    //         if (startMarker && endMarker) {
-    //             const range = document.createRange();
-    //             range.setStartAfter(startMarker); // startMarker 바로 뒤부터 선택
-    //             range.setEndBefore(endMarker);      // endMarker 바로 앞까지 선택
-    //
-    //             selection!.removeAllRanges();
-    //             selection!.addRange(range);
-    //         }
-    //         setIsCursorUpdate(false)
-    //     }
-    //     setIsRender(false)
-    // }, [isRender]);
+    // ---------- history 이벤트 핸들러 ----------
     useEffect(() => {
-        const keydownEvent = (event: Event) => {
-            const e = event as KeyboardEvent
-            if (e.ctrlKey && e.key.toLowerCase() === 'z' ) {
-                e.preventDefault() // 브라우저 기본 뒤로 가기 방지
-                undo()
+        eventManager.addEventListener('keydown', 'RichEditor', (event: Event) => {
+                const e = event as KeyboardEvent
+                if (e.ctrlKey && e.key.toLowerCase() === 'z' ) {
+                    e.preventDefault() // 브라우저 기본 뒤로 가기 방지
+                    undo()
+                }
+                if (e.ctrlKey && e.key.toLowerCase() === 'y' ) {
+                    e.preventDefault() // 브라우저 기본 앞으로 가기 방지
+                    redo()
+                }
             }
-            if (e.ctrlKey && e.key.toLowerCase() === 'y' ) {
-                e.preventDefault() // 브라우저 기본 앞으로 가기 방지
-                redo()
-            }
-        }
+        )
 
-        document.addEventListener('keydown', keydownEvent)
-
-        return () => {
-            document.removeEventListener('keydown', keydownEvent)
-        }
-    }, [redo, undo]);
+        return () => eventManager.removeEventListener('keydown', 'RichEditor')
+    }, [currentEditable, redo, undo]);
 
     /* ========== 드래그 & 드랍 ========== */
     const [fromIndex, setFromIndex] = useState(-1) // 드래그 할 위치
@@ -321,6 +289,9 @@ const RichEditor = () => {
     
     /* ========== 이벤트 핸들러 정의 ========== */
     const handleCard = { // history 업데이트를 위한 이벤트 핸들러
+        onFocus: (e: FocusEvent<HTMLDivElement>) => { // 아 포커싱을 해버리고 나서 여기서 커서 위치 배정하면 될거 같은데..?
+            setCurrentEditable(e.target as CustomTextAreaElement)
+        },
         onClick: () => {
             setIsEraseMode(null) // 초기값으로 돌리기
         },
@@ -385,39 +356,7 @@ const RichEditor = () => {
                 setIsInValidation(true) // 삭제일 수도 아닐 수도 있으므로 검증 모드로 넘어감
             }
         },
-        // onChange: () => { // 커서 위치 이동
-        //     if (isCursorUpdate && cursor) {
-        //         const {startContainer, startOffset, endContainer, endOffset} = cursor
-        //         const range = document.createRange()
-        //         selection?.removeAllRanges()
-        //         range.setStart(startContainer, startOffset)
-        //         range.setEnd(endContainer, endOffset)
-        //         selection?.addRange(range)
-        //     }
-        //     setIsCursorUpdate(false)
-        // }
     }
-    // const handleCardSelector = {
-    //     onChange: () => {
-    //         console.log('onChange')
-    //     }
-    // }
-    // const setCursorScroll = useCallback(() => {
-    //     if(isCursorUpdate) {
-    //         const startMarker = document.getElementById('cursor-start');
-    //         const endMarker = document.getElementById('cursor-end');
-    //         console.log(startMarker)
-    //         if (startMarker && endMarker) {
-    //             const range = document.createRange();
-    //             range.setStartAfter(startMarker); // startMarker 바로 뒤부터 선택
-    //             range.setEndBefore(endMarker);      // endMarker 바로 앞까지 선택
-    //
-    //             selection!.removeAllRanges();
-    //             selection!.addRange(range);
-    //         }
-    //     }
-    //     setIsCursorUpdate(false)
-    // }, [isCursorUpdate, selection])
 
     const handleAddCard = (index: number) => ({
         onClick: () => {
