@@ -45,7 +45,7 @@ import {useRichEditorContext} from "../common/contexts/LayoutContext.ts";
 import useHistory from "../common/history/useHistory.ts";
 import isEqual from "fast-deep-equal";
 import useDrop from "../common/dragdrop/useDrop.tsx";
-import {CustomTextAreaElement} from "../common/component/TextArea.tsx";
+import {CustomTextAreaElement} from "../common/component/CustomTextArea.tsx";
 import {eventManager} from "../global/event.ts";
 
 const Container = styled(MainContainer)`
@@ -87,10 +87,6 @@ export interface GetDataHTMLElement extends HTMLElement {
     getData: () => string;
 }
 
-// type Cursor = {
-//     startPath: number[]
-//     offset: number
-// }|null
 // history 관련 타입 정의
 interface Scroll {
     x: number
@@ -98,9 +94,11 @@ interface Scroll {
 }
 type Data = {
     cards: CardProps[]
-    // cursor: Cursor
     scroll: Scroll
 } | null
+
+const startMarkerId = 'cursor-start'
+const endMarkerId = 'cursor-end'
 
 const RichEditor = () => {
     const cardRefs = useRef<{ [id: string]: GetDataHTMLElement | null }>({}); // 객체를 card.id로 관리
@@ -118,7 +116,7 @@ const RichEditor = () => {
     const selection = useMemo(() => window.getSelection(), [])
     const [data, setData] = useState<Data>(null)
     const [currentData, setCurrentData] = useState<Data>(null)
-    // const [scroll, setScroll] = useState<Scroll>({x: 0, y: 0})
+    const [currentEditable, setCurrentEditable] = useState<CustomTextAreaElement|null>(null) // 현재 편집 중인 요소
 
     // ------ 최신 데이터 가져오는 함수 ------
     const getLatestCards = useCallback(() => { // 최신 카드 데이터
@@ -129,17 +127,45 @@ const RichEditor = () => {
             mode: card.mode,
         })))
     }, [cards]);
-    // const getLatestCursor = useCallback(():Cursor => { // 최신 커서 위치
-    //     if (!selection || selection.rangeCount === 0) return null
-    //     const range = selection.getRangeAt(0)
-    //     const {startContainer, startOffset, endContainer, endOffset} = range
-    //
-    //     // cardRefs가 배열일 경우, 각 ref 를 순회하며 커서가 그 요소나 하위에 포함되는지 체크
-    //     const refs = Object.values(cardRefs.current)
-    //     const isInsideCard = refs.some(ref => ref?.contains(startContainer));
-    //     if (!isInsideCard) return null;
-    //
-    // }, [selection]);
+
+    // 커서 위치 마킹
+    const createMarker = (id: string) => {
+        const marker = document.createElement('b')
+        marker.id = id
+        marker.style.pointerEvents = 'none'
+        marker.style.userSelect = 'none'
+
+        return marker
+    }
+    const insertCursorMarker = useCallback(() => { // 최신 커서 위치 innerText 기준 offset
+        document.querySelectorAll('b').forEach(el => el.remove());
+
+        if (!currentEditable) return null
+        if (!selection || selection.rangeCount === 0) return null
+
+        const range = selection.getRangeAt(0)
+        const {startContainer} = range
+
+        // cardRefs가 배열일 경우, 각 ref 를 순회하며 커서가 그 요소나 하위에 포함되는지 체크
+        const refs = Object.values(cardRefs.current)
+        const isInsideCard = refs.some(ref => ref?.contains(startContainer));
+        if (!isInsideCard) return null;
+
+        const originalRange = selection.getRangeAt(0).cloneRange()
+        const startMarker = createMarker(startMarkerId)
+        const startRange = originalRange.cloneRange();
+        startRange.collapse(true); // 시작 위치로 collapse
+        startRange.insertNode(startMarker);
+
+        const endMarker = createMarker(endMarkerId)
+        const endRange = originalRange.cloneRange();
+        endRange.collapse(false); // 끝 위치로 collapse
+        endRange.insertNode(endMarker);
+
+        selection.removeAllRanges();
+        selection.addRange(originalRange);
+    }, [currentEditable, selection]);
+
     const getLatestScroll = useCallback((): Scroll => { // 최신 스크롤 위치
         const {scrollX, scrollY} = window
         return {
@@ -149,24 +175,35 @@ const RichEditor = () => {
     }, []);
     
     // 매개변수 latestCards, latestCursor 를 받아 사용하는 공통 함수
-    const getDataCommonFunc = useCallback((latestCards: CardProps[], isReplaceMode: boolean=false): Data => {
-        if (!isReplaceMode && currentData && isEqual(currentData.cards, latestCards)) { // 현 상태 history 와 카드가 같다면 커서와 스크롤은 이전 데이터 사용 즉, 업데이트 X
-            return currentData
-        }
-        // insertCursorMarker()
+    // const getDataCommonFunc = useCallback((latestCards: CardProps[], isReplaceMode: boolean=false): Data => {
+    //     insertCursorMarker()
+    //     return {
+    //         cards: latestCards,
+    //         scroll: getLatestScroll(),
+    //     }
+    // }, [currentData, getLatestScroll, insertCursorMarker])
+    // 모든 최신 데이터 가져오기
+    const getLatestData = useCallback(():Data => {
+        insertCursorMarker()
         return {
-            cards: latestCards,
+            cards: getLatestCards(),
             scroll: getLatestScroll(),
         }
-    }, [currentData, getLatestScroll])
-    // 모든 최신 데이터 가져오기
-    const getLatestData = useCallback((isReplaceMode: boolean=false):Data => getDataCommonFunc(getLatestCards(), isReplaceMode), [getDataCommonFunc, getLatestCards])
+    }, [getLatestCards, getLatestScroll, insertCursorMarker])
     // 카드 업데이트시 데이터 업데이트
-    const getUpdateData = useCallback(():Data => getDataCommonFunc(cards), [cards, getDataCommonFunc])
+    const getUpdateData = useCallback(():Data => {
+        insertCursorMarker()
+        return {
+            cards: cards,
+            scroll: getLatestScroll(),
+        }
+    }, [cards, getLatestScroll, insertCursorMarker])
 
     // ------ 카드 업데이트 ------
     const [isCardUpdate, setIsCardUpdate] = useState(false) // undo|redo 시 중복 업 방지
     const [isDataUpdate, setIsDataUpdate] = useState(false) // undo|redo 시 중복 업 방지
+    const [isCursorUpdate, setIsCursorUpdate] = useState(false) // undo|redo 시 중복 업 방지
+
     useEffect(() => { // 카드 변경으로 인한 상태 업데이트
         if (!cards || cards.length === 0) return
         if (isEqual(cards, data?.cards)) return
@@ -176,27 +213,38 @@ const RichEditor = () => {
     }, [cards]);
 
     // ------ undo|redo 업데이트 ------
-    const [isCursorUpdate, setIsCursorUpdate] = useState<boolean>(false)
     useEffect(() => { // undo|redo 상태 업데이트
         if (!data) return;
         if (isCardUpdate) return
         setIsDataUpdate(true)
         setCards(data.cards)
-
         setIsCursorUpdate(true)
     }, [data])
     useEffect(() => { // data 변경으로 인한 카드 업데이트 후
-        eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
-            setIsCursorUpdate(false)
-            if (isCursorUpdate) {
+        eventManager.addEventListener('customTextAreaChange', 'RichEditor', (event: Event) => {
+            const e = event as CustomEvent<HTMLElement>
 
+            if (!isCursorUpdate) return
+
+            console.log(e.detail.innerHTML)
+            const startMarker = document.getElementById(startMarkerId);
+            const endMarker = document.getElementById(endMarkerId);
+            if (startMarker && endMarker) {
+                const range = document.createRange();
+                range.setStartAfter(startMarker); // startMarker 바로 뒤부터 선택
+                range.setEndBefore(endMarker);      // endMarker 바로 앞까지 선택
+
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
             }
+
+            setIsCursorUpdate(false)
         })
 
         return () => eventManager.removeEventListener('customTextAreaChange', 'RichEditor')
-    }, [isCursorUpdate]);
+    }, [isCursorUpdate, data, cards]);
 
-    const [currentEditable, setCurrentEditable] = useState<CustomTextAreaElement|null>(null) // 현재 편집 중인 요소
     const {present, updateHistory, undo, redo} = useHistory<Data>(data, setData, getLatestData)
 
     // 위에서 present 데이터 사용하기 위함
@@ -217,7 +265,8 @@ const RichEditor = () => {
     // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
     useEffect(() => {
         if (isEraseMode === null) return
-        updateHistory(getLatestData(true)) //초기 상태가 아닐 때}
+        console.log('호엥')
+        updateHistory(getLatestData()) //초기 상태가 아닐 때}
     }, [isEraseMode]);
 
     // ---------- history 이벤트 핸들러 ----------
