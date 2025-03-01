@@ -11,13 +11,12 @@ export const eventManager = {
         const id = name + type
         const listenersSet = this.listeners.get(type)!;
 
-        // 중복 방지: ID 기반으로 체크
-        const isDuplicate = Array.from(listenersSet).some((entry) => entry.id === id);
+        // 중복 방지: ID 기반으로 체크, 중복이 있으면 삭제 후 추가
+        const entryToRemove = Array.from(listenersSet).find((entry) => entry.id === id);
+        if (entryToRemove) document.removeEventListener(type, entryToRemove.callback);
 
-        if (!isDuplicate) {
-            listenersSet.add({ id, callback: listener });
-            document.addEventListener(type, listener);
-        }
+        listenersSet.add({ id, callback: listener });
+        document.addEventListener(type, listener);
     },
 
     removeEventListener(type: string, name: string) {
