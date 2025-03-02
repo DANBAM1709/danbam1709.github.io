@@ -6,11 +6,10 @@ import {
     KeyboardEvent as ReactKeyboardEvent,
     SetStateAction,
     useCallback,
-    useEffect,
+    useEffect, useLayoutEffect,
     useState
 } from "react";
 import {CardProps} from "./CardSelector.tsx";
-import {CustomTextAreaElement} from "../../common/component/CustomTextArea.tsx";
 import isEqual from "fast-deep-equal";
 import {eventManager} from "../../global/event.ts";
 import useHistory from "../../common/history/useHistory.ts";
@@ -20,7 +19,7 @@ import useCursorManager from "./useCursorManager.ts";
 type Cursor = { // 마커로 표시
     startPos: number
     endPos: number
-    currentEditable: CustomTextAreaElement|null
+    currentEditable: HTMLElement|null
 } | null
 interface Scroll {
     x: number
@@ -34,7 +33,7 @@ type Data = {
 
 const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAction<CardProps[]>>, cardRefs:  { [id: string]: GetDataHTMLElement | null }, getLatestCards: () => CardProps[]) => {
     const [data, setData] = useState<Data>(null)
-    const [currentEditable, setCurrentEditable] = useState<CustomTextAreaElement|null>(null) // 현재 편집 중인 요소
+    const [currentEditable, setCurrentEditable] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
     const [currentData, setCurrentData] = useState<Data|null>(null) // present
 
     const {getCursorOffsets, moveCursor} = useCursorManager()
@@ -73,7 +72,8 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
     // ------ 카드 업데이트 ------
     const [isCardUpdate, setIsCardUpdate] = useState(false) // undo|redo 시 중복 업 방지
     const [isDataUpdate, setIsDataUpdate] = useState(false) // undo|redo 시 중복 업 방지
-    const [isCursorUpdate, setIsCursorUpdate] = useState(false) // undo|redo 시 중복 업 방지
+    const [isUpdateToRender, setIsUpdateToRender] = useState(false) // undo|redo 시 중복 업 방지
+    const [isUpdateNoRender, setIsUpdateNoRender] = useState(false) // 랜더링 없이 커서 위치만 이동
 
     useEffect(() => { // 카드 변경으로 인한 상태 업데이트
         if (!cards || cards.length === 0) return
@@ -87,8 +87,13 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
     useEffect(() => { // undo|redo 상태 업데이트
         if (!data || isCardUpdate) return;
         setIsDataUpdate(true)
-        setCards(data.cards)
-        setIsCursorUpdate(true)
+
+        if (isEqual(data.cards, cards)) {
+            setIsUpdateNoRender(true) // 랜더링 없는 데이터 업데이트
+        } else {
+            setCards(data.cards) // 카드 랜더링
+            setIsUpdateToRender(true) // 랜더링 후 커서, 스크롤 이동 검증용
+        }
     }, [data])
 
     const {present, updateHistory, undo, redo} = useHistory<Data>(data, setData, getLatestData)
@@ -98,43 +103,49 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
         setIsDataUpdate(false)
         setIsCardUpdate(false)
     }, [present]);
-
-    useEffect(() => { // data 변경으로 인한 카드 업데이트 후
+    // 카드 업데이트 없이 커서 이동 등 undo redo 이벤트
+    useEffect(() => {
+        if (isUpdateNoRender && data?.cursor) {
+            const {startPos, endPos, currentEditable: node} = data.cursor
+            moveCursor(node, startPos, endPos)
+            setIsUpdateNoRender(false)
+        }
+    }, [isUpdateNoRender]);
+    useEffect(() => { // data 변경으로 인한 카드 랜더링 후
         eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
-            if (!isCursorUpdate || !data?.cursor) return
+            if (!isUpdateToRender || !data?.cursor) return
 
-            const {startPos, endPos, currentEditable} = data.cursor
-            moveCursor(currentEditable, startPos, endPos)
-            setIsCursorUpdate(false)
+            const {startPos, endPos, currentEditable: node} = data.cursor
+            moveCursor(node, startPos, endPos)
+            setIsUpdateToRender(false)
         })
 
         return () => eventManager.removeEventListener('customTextAreaChange', 'RichEditor')
-    }, [isCursorUpdate, data, cards]);
+    }, [isUpdateToRender, data, cards, moveCursor]);
 
     const [prevUnicode, setPrevUnicode] = useState<number>(-1) // 한글 삭제 감지를 위함
     const [isInValidation, setIsInValidation] = useState<boolean>(false) // beforeInputTrigger 가 되는지 여부를 감지하는 검증 단계로 들어가는 그런 것
     const [isEraseMode, setIsEraseMode] = useState<boolean|null>(null) // 삭제 모드 null 은 초기상태
 
-    const [stagedData, setStagedData] = useState<Data|null>(null) // 입력/삭제 모드 전환 전 null 초기 상태로 진입할 때 임시 저장 값
-    const [isStaged, setIsStaged] = useState<boolean>(false) // 임시 데이터가 있는경우
-
     // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
-    useEffect(() => {
-        if (isEraseMode === null) return
+    useLayoutEffect(() => {
+        if (isEraseMode === null) {
+            updateHistory(getLatestData(false)) // 초기 상태가 아닐 때
+            return
+        }
         // 삭제 | 입력 모드 전환 타이밍
-        updateHistory(getLatestData(false)) //초기 상태가 아닐 때}
+        updateHistory(getLatestData()) // 초기 상태가 아닐 때
     }, [isEraseMode]);
 
     const handleCard = { // history 업데이트를 위한 이벤트 핸들러
-        onFocus: (e: FocusEvent<HTMLDivElement>) => { // 아 포커싱을 해버리고 나서 여기서 커서 위치 배정하면 될거 같은데..?
-            setCurrentEditable(e.target as CustomTextAreaElement) // 추후 수정 필요
+        onFocus: (e: FocusEvent<HTMLDivElement>) => {
+            setCurrentEditable(e.currentTarget as HTMLElement)
         },
         onBlur: () => { // blur 가 먼저임
             setCurrentEditable(null) // 선택 요소 제거
         },
         onMouseDown: () => {
-            setIsEraseMode(null) // 초기값으로 돌리기
-            setStagedData(getLatestData(false)) // 이동 전 stage 위치로
+            setIsEraseMode(null)
         },
         onKeyDown: (e: ReactKeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Tab') {
@@ -156,10 +167,8 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
                 'PageUp',     // PageUp 키
                 'PageDown'    // PageDown 키
             ];
-
             if (cursorMoveKeys.includes(e.key)) { // 이 경우 selectionchange 로 다음 커서 위치 인지해야 할거 같은디
                 setIsEraseMode(null) // 초기상태로 돌리기
-                setStagedData(getLatestData(false)) // 이동 전 stage 위치로
             }
         },
         onBeforeInput: (e: FormEvent<HTMLDivElement>) => { // 검증해봤는데 글 쓰는 중임
