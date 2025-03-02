@@ -125,7 +125,6 @@ const useCursorManager = () => {
             } else if (isContain) { // 하위 요소가 없다면! 찾음!
                 state.node = child
                 state.offset = searchPos - previousTotalLength
-                state.previousLength = previousTotalLength // endContainer 조회시 사용
                 break
             }
 
@@ -146,14 +145,15 @@ const useCursorManager = () => {
             previousLength: 0 // startContainer 조회까지 찾은 총 길이
         }
 
+        // startContainer 조회
         const nodes = [...element.childNodes]
         searchNodes(nodes, state, 0, startPos, true);
         const startContainer = state.node
         const startOffset = state.offset
-
-        state.offset = state.previousLength
+        
+        // endContainer 조회
         const remainingNodes = nodes.slice(state.index)
-        searchNodes(remainingNodes, state, 0, endPos, false);
+        searchNodes(remainingNodes, state, state.previousLength, endPos, false);
         const endContainer = state.node
         const endOffset = state.offset
 
