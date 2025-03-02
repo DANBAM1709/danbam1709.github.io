@@ -35,7 +35,7 @@ const useHistory = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestD
 
             return copy
         })
-    }, [index, isLatestIndex])
+    }, [index])
 
     /* =============== 상태 감지 정의 =============== */
     useEffect(() => { // 외부로 보낼 현 상태 데이터 업데이트
@@ -89,7 +89,7 @@ const useHistory = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestD
     useEffect(() => { // STEP1
         if (isUndo) {
             const latestData = getLatestData()
-            if (isEqual(latestData, history[index])) { // 업데이트 할 값과 현재 값 비교
+            if (index === 0 || isEqual(latestData, history[index])) { // 업데이트 할 값과 현재 값 비교
                 setIsUndoRedo(true) // 아래로 STEP2로
             } else {
                 updateHistory(latestData) // history 업데이트 | 위로 업데이트 후 STEP3 으로 이동
@@ -141,7 +141,7 @@ const useHistory = <T,>(data:T, setData: Dispatch<SetStateAction<T>>, getLatestD
     const redo = useCallback(() => setIsRedo(true), [])
 
 
-    return {present, updateHistory, undo, redo}
+    return {present, updateHistory, undo, redo, history}
 }
 
 export default useHistory
