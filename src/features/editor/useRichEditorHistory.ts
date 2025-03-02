@@ -6,15 +6,15 @@ import {
     KeyboardEvent as ReactKeyboardEvent,
     SetStateAction,
     useCallback,
-    useEffect, useLayoutEffect,
+    useEffect,
+    useLayoutEffect,
     useState
 } from "react";
 import {CardProps} from "./CardSelector.tsx";
 import isEqual from "fast-deep-equal";
 import {eventManager} from "../../global/event.ts";
-import useHistory from "../../common/history/useHistory.ts";
-import {GetDataHTMLElement} from "../../layout/RichEditor.tsx";
-import useCursorManager from "./useCursorManager.ts";
+import useNo from "../../common/hook/useNo.ts";
+import useCursorManager from "../../common/hook/useCursorManager.ts";
 
 type Cursor = { // 마커로 표시
     startPos: number
@@ -31,7 +31,7 @@ type Data = {
     scroll: Scroll
 } | null
 
-const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAction<CardProps[]>>, cardRefs:  { [id: string]: GetDataHTMLElement | null }, getLatestCards: () => CardProps[]) => {
+const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestCards: () => CardProps[]) => {
     const [data, setData] = useState<Data>(null)
     const [currentEditable, setCurrentEditable] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
     const [currentData, setCurrentData] = useState<Data|null>(null) // present
@@ -96,7 +96,7 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
         }
     }, [data])
 
-    const {present, updateHistory, undo, redo} = useHistory<Data>(data, setData, getLatestData)
+    const {present, updateHistory, undo, redo} = useNo<Data>(data, setData, getLatestData)
     // 설정 초기화 setData 되기 전에 present 먼저 변경되므로 OK
     useEffect(() => {
         setCurrentData(present)
