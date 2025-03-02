@@ -1,14 +1,5 @@
 import {useCallback} from "react";
-import {length} from "lodash";
-import {end} from "@popperjs/core";
 
-interface SearchOffsetState {
-    charCount: number;
-    startCharOffset: number;
-    endCharOffset: number;
-    foundStart: boolean;
-    foundEnd: boolean;
-}
 interface SearchNodeState {
     charCount: number;
     startNode: Node | null;
@@ -22,20 +13,13 @@ const useCursorManager = () => {
 
     // ============== 커서 위치 찾기 ==============
     // 노드 순회하면서 위치 찾기 (재귀)
-    const searchPos = useCallback((nodes: Node[], state, searchNode: Node, nodeOffset: number) => {
+    const searchPos = useCallback((nodes: Node[], state: { pos: number }, searchNode: Node, nodeOffset: number) => {
         let isContain = false // 포함하는 노드를 찾았는가
-        let index = 0
 
         for (const child of nodes) { // nodes 는 node.childNodes[] 중 찾고자 하는 부분
-            index += 1
 
             if (child.contains(searchNode) && child !== searchNode) { // 하위 또는 자기 자신 contains 는 반대도 성립함
                 isContain = true
-            }
-
-            if (!state.isFoundStart && isContain) { // 루트 기준 인덱스 찾음
-                state.foundIndex = index
-                state.isFoundStart = true
             }
 
             const length = child.textContent?.length ?? 0
@@ -47,7 +31,6 @@ const useCursorManager = () => {
                 break
             } else { // 찾지 못했다면
                 state.pos += length // 나중에 수정할 수 있음 실제로 어떻게 인식되느냐에 따라
-                state.charCount += length // endContainer 찾을 때 필요함
             }
         }
     }, [])
@@ -83,11 +66,7 @@ const useCursorManager = () => {
             return { startPos: startPos, endPos: endPos };
         }
 
-        // isFound:
         const state = {
-            isFoundStart: false, // rootNodes 에서 startContainer 를 찾았는가
-            foundIndex: 0, // rootNodes 기준 startContainer 조회한 마지막 위치
-            charCount: 0,
             pos: 0 // 지금까지 찾은 위치
         }
 
