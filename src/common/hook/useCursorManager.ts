@@ -162,6 +162,7 @@ const useCursorManager = () => {
                 selection.addRange(range);
             }
         }
+        setMovePosition(null)
     }, [movePosition]);
     // 노드를 순회하며 노드 찾기 및 offset 찾기 (재귀)
     const searchNodes = useCallback((nodes: Node[], state: SearchNodesState, prevLength: number, searchPos: number, rootCheck: boolean) => {
