@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import MenuBtn from "../uncategorized/test/MenuBtn.tsx";
 
 const Container = styled.div`
     height: 100vh;
@@ -13,33 +14,6 @@ const Container = styled.div`
         box-shadow: rgba(0, 0, 0, 0.024) -1px 0 0 0 inset;
         background: rgb(248, 248, 247);
         z-index: 10;
-    }
-`
-
-interface MenuBtnProps {
-    $depth?: number
-}
-
-const MenuBtn = styled.div<MenuBtnProps>`
-    display: flex;
-    align-items: center;
-    min-height: 28px;
-    line-height: 1.2;
-    user-select: none;
-    font-size: 14px;
-    padding-left: ${({$depth}: MenuBtnProps) => $depth ? `${10 + 8*$depth}px` : '10px'};
-    padding-right: 12px;
-    margin-right: 4px;
-    margin-left: 4px;
-    cursor: pointer;
-    border-radius: 6px;
-    
-    &:hover {
-        background: rgba(55, 53, 47, 0.06);   
-    }
-    
-    img {
-        margin-right: 8px;
     }
 `
 

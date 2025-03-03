@@ -1,22 +1,23 @@
 import styled from "styled-components";
-import TextArea from "../../../common/component/TextArea.tsx";
-import {forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
-import {GetDataHTMLElement} from "../../../layout/RichEditor.tsx";
+import CustomTextArea, {CustomTextAreaElement} from "../../../common/component/CustomTextArea.tsx";
+import {FocusEvent, forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
+import {GetDataHTMLElement} from "../RichEditor.tsx";
 import {useRichEditorContext} from "../../../common/contexts/LayoutContext.ts";
+import {InheritCardProps} from "../CardSelector.tsx";
 
-const BasicTextArea = styled(TextArea)`
+const BasicTextArea = styled(CustomTextArea)`
     display: block;
 `
 
-const BasicCard = forwardRef<GetDataHTMLElement, {html: string}>(({html}, ref) => {
-    const targetRef = useRef<HTMLDivElement>(null)
+const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data, onBlur, onFocus, onKeyDown, ...rest}, ref) => {
+    const targetRef = useRef<CustomTextAreaElement>(null)
     const selection = useMemo(() => window.getSelection(), []) // contenteditable 이 빈 상태에서 랜더링되면 랜더링 전 가져온 selection 은 해당 요소에서 null 이 됨
     const {dispatch} = useRichEditorContext()
 
     useImperativeHandle(ref, () => {
         if (targetRef.current) {
             return Object.assign(targetRef.current, {
-                getData: () => targetRef.current!.innerHTML
+                getData: () => ({html: targetRef.current!.innerHTML})
             }) as GetDataHTMLElement
         }
         throw new Error('BasicStyle ref error!')
@@ -30,13 +31,6 @@ const BasicCard = forwardRef<GetDataHTMLElement, {html: string}>(({html}, ref) =
                 up: e.key === 'ArrowUp', // 블록 이동 위로
                 down: e.key === 'ArrowDown', // 블록 이동 아래로
             }
-
-            // <- backspace && empty (보류)
-            // if (con.delete && con.empty) {
-            //     e.preventDefault()
-            //     e.currentTarget.innerHTML = '<div></div>' // 텍스트 블록 삭제
-            //     dispatch({type: 'DELETE_CARD', payload: e.currentTarget})
-            // }
 
             // 방향키 Up
             if (con.up) {
@@ -74,12 +68,18 @@ const BasicCard = forwardRef<GetDataHTMLElement, {html: string}>(({html}, ref) =
                     console.log('아래로')
                 }
             }
-
+            if (onKeyDown) onKeyDown(e)
         },
-        onFocus: () => dispatch({type: 'TOGGLE_TOOLTIP', payload: true}),
-        onBlur: () => dispatch({type: 'TOGGLE_TOOLTIP', payload: false}),
+        onFocus: (e: FocusEvent<HTMLDivElement>) => {
+            dispatch({type: 'TOGGLE_TOOLTIP', payload: true})
+            if (onFocus) onFocus(e)
+        },
+        onBlur: (e: FocusEvent<HTMLDivElement>) => {
+            dispatch({type: 'TOGGLE_TOOLTIP', payload: false})
+            if (onBlur) onBlur(e)
+        },
     }
 
-    return (<BasicTextArea ref={targetRef} {...handleTextArea}>{html}</BasicTextArea>)})
+    return (<BasicTextArea ref={targetRef} {...handleTextArea} {...rest} html={data} />)})
 
 export default BasicCard
