@@ -4,9 +4,8 @@ import {ErrorBoundary} from "react-error-boundary";
 import ErrorFallback from "./error/ErrorFallback.tsx";
 import NotFound from "./error/NotFound.tsx";
 import GlobalProvider from "./global/GlobalProvider.tsx";
-import RichEditor from "./layout/RichEditor.tsx";
-import {RichEditorProvider} from "./editor/RichEditorReducer.ts";
-import Test from "./Test.tsx";
+import RichEditor from "./features/editor/RichEditor.tsx";
+import {RichEditorProvider} from "./common/contexts/LayoutContext.ts";
 
 const Container = styled.div`
     display: flex;
@@ -22,7 +21,7 @@ function App() {
             <ErrorBoundary FallbackComponent={ErrorFallback}>
                 <Routes>
                     <Route path={"/"} element={<RichEditorProvider><RichEditor /></RichEditorProvider>} />
-                    <Route path={'/test'} element={<Test />} />
+                    {/*<Route path={'/test'} element={<Test />} />*/}
                     <Route path={'*'} element={<NotFound />} />
                 </Routes>
             </ErrorBoundary>
