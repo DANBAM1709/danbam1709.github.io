@@ -1,23 +1,22 @@
 import styled from "styled-components";
 import * as monaco from "monaco-editor";
 import Editor, {loader} from '@monaco-editor/react';
-import {useEffect, useRef, useState} from "react";
+import {ComponentPropsWithoutRef, forwardRef, useEffect, useRef, useState} from "react";
 
 const Container = styled.div`    
     /* 테스트용 css */
-    width: 500px;
+    width: 100%;
     background: #f9f9f9;
-    border: 1px solid #ccc;
-    //margin: 1rem;
     padding: 1rem 0.5rem;
-    border-radius: 0.3rem;
     box-sizing: border-box;
-    
-    .code-header {
-        margin-bottom: 1.5rem;
-        display: flex;
-        position: relative;
-    }
+    border-radius: 0.3rem;
+    border: 1px solid #ccc;
+    //
+    //.code-header {
+    //    margin-bottom: 1.5rem;
+    //    display: flex;
+    //    position: relative;
+    //}
 
     .decorationsOverviewRuler { // 우측 스크롤바
         display: none !important;
@@ -32,34 +31,10 @@ const Container = styled.div`
         }
     }
 `
-const Button = styled.button`
-    padding: 0;
-    margin: 0;
-    border: none;
-    
-    &:focus {
-        outline: none;
-    }
-`
-const Select = styled.ul.attrs({ tabIndex: 0 })` // tabIndex: 0 -> focus ok
-    list-style: none;
-    position: absolute;
-    top: 1.5rem;
-    padding: 0;
-    margin: 0;
-`
-const Option = styled.li`
-    cursor: pointer;
-    background: gainsboro;
-    width: 100%;
-    &:hover {
-        background: #f9f9f9;
-    }
-`
 
 /* ------------------------ Component ------------------------ */
-const CodeStyle = ({children}: {children: string}) => {
-    const selection = useRef<HTMLUListElement>(null)
+const CodeCard = forwardRef<HTMLDivElement, {children: string} & ComponentPropsWithoutRef<'div'>>(({children, ...props}, ref) => {
+    // const selection = useRef<HTMLUListElement>(null)
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor|null>(null)
     const options = ['html', 'css', 'javascript', 'python']
     const [sortedOptions, setSortedOptions] = useState<string[]>([...options.filter(o=> o !== options[0])])
@@ -68,16 +43,16 @@ const CodeStyle = ({children}: {children: string}) => {
     const [selectOption, setSelectOption] = useState<string>(options[0])
     const [editorHeight, setEditorHeight] = useState<number>(0)
 
-    useEffect(() => {
-        if (isOpen) { // select 컨테이너 활성
-            selection.current!.style.opacity = '1'
-            selection.current!.style.zIndex = '99'
-            selection.current!.focus()
-        } else {
-            selection.current!.style.opacity = '0'
-            selection.current!.style.zIndex = '-99'
-        }
-    }, [isOpen])
+    // useEffect(() => {
+    //     if (isOpen) { // select 컨테이너 활성
+    //         selection.current!.style.opacity = '1'
+    //         selection.current!.style.zIndex = '99'
+    //         selection.current!.focus()
+    //     } else {
+    //         selection.current!.style.opacity = '0'
+    //         selection.current!.style.zIndex = '-99'
+    //     }
+    // }, [isOpen])
 
     // 사용자 정의 코드 블럭 테마
     loader.init().then(monaco => {
@@ -87,7 +62,7 @@ const CodeStyle = ({children}: {children: string}) => {
             rules: [],
             colors: {
                 'editor.background': "#00000000",
-                'editor.border': "#00000000"
+                'editor.border': "#00000000",
             }
         })
     })
@@ -144,15 +119,15 @@ const CodeStyle = ({children}: {children: string}) => {
         setEditorHeight(initialHeight);
     }
 
-    return (<Container>
-        <div className={'code-header'}>
-            <Button onClick={handleToggleSelection}>{selectOption}</Button>
-            <Select ref={selection} onBlur={() => setIsOpen(false)}>
-                {sortedOptions.map(option => <Option onClick={()=>handleSelectOption(option)} key={option}>{option}</Option>)}
-            </Select>
-            <div style={{flex: '1'}}></div>
-            <Button onClick={copy}>{isCopied? '복사 완료': '복사'}</Button>
-        </div>
+    return (<Container {...props}>
+        {/*<div className={'code-header'}>*/}
+        {/*    /!*<Button onClick={handleToggleSelection}>{selectOption}</Button>*!/*/}
+        {/*    /!*<Select ref={selection} onBlur={() => setIsOpen(false)}>*!/*/}
+        {/*    /!*    {sortedOptions.map(option => <Option onClick={()=>handleSelectOption(option)} key={option}>{option}</Option>)}*!/*/}
+        {/*    /!*</Select>*!/*/}
+        {/*    /!*<div style={{flex: '1'}}></div>*!/*/}
+        {/*    /!*<Button onClick={copy}>{isCopied? '복사 완료': '복사'}</Button>*!/*/}
+        {/*</div>*/}
         <Editor
             language={selectOption}
             height={editorHeight}
@@ -163,6 +138,6 @@ const CodeStyle = ({children}: {children: string}) => {
         />
     </Container>)
 
-}
+})
 
-export default CodeStyle
+export default CodeCard
