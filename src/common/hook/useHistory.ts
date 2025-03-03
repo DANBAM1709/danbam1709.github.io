@@ -3,16 +3,13 @@ import {useCallback, useEffect, useState} from "react";
 
 // param getLatestData: () => T <br />
 // return {present:{present: T}(undo, redo 일 때만), current: T, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
-const useHistory = <T,>(getLatestData: () => T) => {
-    const [isUndo, setIsUndo] = useState<boolean>(false)
-    const [isRedo, setIsRedo] = useState<boolean>(false)
+const useHistory = <T,>() => {
     const [index, setIndex] = useState<number>(0)
     const [current, setCurrent] = useState<T|null>(null)
     const [present, setPresent] = useState<{present: T}|null>(null)
     const [history, setHistory] = useState<T[]>([])
 
     const [isUndoRedo, setIsUndoRedo] = useState<boolean>(false)
-    const [isLockIndex, setIsLockIndex] = useState<boolean>(false) // undo로 인한 인덱스 업데이트 시 업데이트 안함
 
     const updateHistory = useCallback((updateData: T) => {
         if (updateData === null) return
@@ -25,44 +22,21 @@ const useHistory = <T,>(getLatestData: () => T) => {
             } else {
                 return prev
             }
+            setIndex(copy.length-1)
             return copy
         })
     }, [index])
 
     /* =============== 상태 감지 정의 =============== */
-    useEffect(() => { // 마지막 인덱스 선택
-        setIsLockIndex(false) // 초기화
-        if (history?.length === 0) return
-        if (isLockIndex) return;
-        setIndex(history.length-1)
-    }, [history]);
+    // useEffect(() => { // 마지막 인덱스 선택
+    //     if (history?.length === 0) return
+    //     setIndex(history.length-1)
+    //     console.log(index, '인덱스가 변함')
+    // }, [history]);
 
     useEffect(() => {
         if (history.length > 0) setCurrent(history[index])
     }, [history, index]);
-
-    // Undo STEP 1. history 업로드 여부
-    useEffect(() => { // 뒤로 가기
-        if (!isUndo) return
-
-        const latestData = getLatestData()
-        if (isEqual(latestData, current)) { // 현재 데이터와 같다면
-            setIndex(pre => Math.max(pre-1, 0))
-        } else { // 최근 데이터 업데이트
-            setIsLockIndex(true)
-            updateHistory(latestData)
-        }
-        setIsUndo(false)
-        setIsUndoRedo(true)
-    }, [isUndo]);
-
-    // Redo
-    useEffect(() => {
-        if (!isRedo) return
-        setIndex(prev => Math.min(prev+1, history.length-1))
-        setIsRedo(false)
-        setIsUndoRedo(true)
-    }, [isRedo]);
 
     useEffect(() => {
         if (!isUndoRedo || !history) return
@@ -70,10 +44,18 @@ const useHistory = <T,>(getLatestData: () => T) => {
         setPresent({present: history[index]})
         setIsUndoRedo(false)
     }, [isUndoRedo]);
-    
+
     /* =============== 이벤트 관리 =============== */
-    const undo = useCallback(() => setIsUndo(true), [])
-    const redo = useCallback(() => setIsRedo(true), [])
+    const undo = useCallback((undoCount: number=1) => {
+        if (index === 0) return
+        setIndex(pre => Math.max(pre-undoCount, 0))
+        setIsUndoRedo(true)
+    }, [index])
+    const redo = useCallback((redoCount: number=1) => {
+        if (!history || index === history.length-1) return
+        setIndex(prev => Math.min(prev+redoCount, history.length-1))
+        setIsUndoRedo(true)
+    }, [history, index])
 
     return {present, current, undo, redo, updateHistory}
 }
