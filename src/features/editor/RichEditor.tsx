@@ -15,7 +15,7 @@ import {
     PlusButton,
     TopDropZone
 } from "./RichEditor.ui.ts";
-import {FocusEvent, useCallback, useEffect, useRef, useState} from "react";
+import {FocusEvent, useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
 import TooltipWithComponent from "../../common/component/TooltipWithComponent.tsx";
 import CardSelector, {CardProps} from "./CardSelector.tsx";
 import Draggable from "../../common/dragdrop/Draggable.tsx";
@@ -60,17 +60,7 @@ const Container = styled(MainContainer)`
 
     ${Section}[data-lastblock='true'] ${BottomDropZone}{
         padding-bottom: 5em;
-    }
-    // ${PlusButton} {
-    //     display: none;
-    // }
-    // ${Section}:focus-within ${PlusButton}{
-    //     display: flex;
-    // }
-    
-    .not-allowed { // 자기 자신에 드롭 불가
-        //cursor: default !important;
-    }
+    }    
 `
 
 // 자식 컴포넌트에서 노출할 ref 타입
@@ -151,31 +141,54 @@ const RichEditor = () => {
     // ---------- history 이벤트 핸들러 ----------
     useEffect(() => setCurrentRecord(current), [current]); // 위에서 current 데이터 사용하기 위함
 
-    // repeat 시 너무 빨라서 문제가 생김...
-    const throttledUndo = throttle(() => { // 일정 시간동안 사용할 수 없도록 막기 속도 조절
-        undo()
-    }, 20, {trailing: false})
-    const throttledRedo = throttle(() => { // 일정 시간동안 사용할 수 없도록 막기 속도 조절
-        redo()
-    }, 20 , {trailing: false})
+    const [isFirstUndo, setIsFirstUndo] = useState(true)
+    const [isUndoRecorded, setIsUndoRecorded] = useState(false) // undo 시 history 업뎃을 했는가
+
+    useLayoutEffect(() => {
+        setIsUndoRecorded(false)
+        if (isUndoRecorded) undo()
+    }, [isUndoRecorded]);
+
+    // 일정 시간동안 사용할 수 없도록 막기 속도 조절 repeat 너무 빨라서 역으로 부자연스러움
+    const throttledUndo = throttle(() => undo(), 50, {trailing: false})
+    const throttledRedo = throttle(() => redo(), 50 , {trailing: false})
 
     useEffect(() => {
         eventManager.addEventListener('keydown', 'RichEditor', (event: Event) => {
             const e = event as KeyboardEvent
             if (e.ctrlKey && e.key.toLowerCase() === 'z' ) {
                 e.preventDefault() // 브라우저 기본 뒤로 가기 방지
-                if (e.repeat) throttledUndo() // 속도 조절
+                setIsFirstUndo(false)
+                let isEqualData = true // 데이터가 같은지 확인
+                let latestData = null
+                
+                if (isFirstUndo) { // 첫번째 undo 라면 데이터 검증
+                    latestData = getLatestData()
+                    isEqualData = isEqual(latestData, current)
+                }
+                if (!isEqualData) { // 데이터가 같지 않다면 
+                    updateHistory(latestData) // 데이터 업로드
+                    setIsUndoRecorded(true) // 인덱스가 변할 때까지 기다릴 필요가 있어서
+                    return;
+                }
+                
+                if (e.repeat) throttledUndo() // 누르고 잇는 상태
                 else undo()
+                
+            } else {
+                setIsFirstUndo(true)
             }
             if (e.ctrlKey && e.key.toLowerCase() === 'y' ) {
                 e.preventDefault() // 브라우저 기본 앞으로 가기 방지
-                if (e.repeat) throttledRedo() // 속도 조절
+                if (e.repeat) throttledRedo() // 누르고 있는 상태
                 else redo()
             }
         })
-
-        return () => eventManager.removeEventListener('keydown', 'RichEditor')
-    }, [undo, redo]);
+        
+        return () => {
+            eventManager.removeEventListener('keydown', 'RichEditor')
+        }
+    }, [undo, redo, throttledUndo, throttledRedo, isFirstUndo, getLatestData, updateHistory]);
 
     // 커서 위치 저장을 위한 Element 객체 담기
     const [selectedIndex, setSelectedIndex] = useState<number|null>(null)
