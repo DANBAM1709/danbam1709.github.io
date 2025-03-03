@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import MainContainer from "../../common/base-style/MainContainer.tsx";
 import Section from "../../common/base-style/Section.tsx";
+import Plus from '../../assets/svg/plus.svg?react'
 import Grab from '../../assets/svg/grab.svg?react'
 import {
     ActionTool,
@@ -25,13 +26,18 @@ import SelectProvider from "../../common/select/SelectProvider.tsx";
 import Options from "../../common/select/Options.tsx";
 import Comment from '../../assets/svg/comment.svg?react'
 import ColorPicker from '../../assets/svg/color-picker.svg?react'
+import Trash from '../../assets/svg/trash.svg?react'
 import Copy from '../../assets/svg/copy.svg?react'
 import Swap from '../../assets/svg/swap.svg?react'
+import TextToolbar from "./TextToolbar.tsx";
+import {useRichEditorContext} from "../../common/contexts/LayoutContext.ts";
 import {eventManager} from "../../global/event.ts";
 import useCardDragDrop from "./hook/useCardDragDrop.ts";
 import useRichEditorHistory from "./hook/useRichEditorHistory.ts";
 import useCursorManager from "../../common/hook/useCursorManager.ts";
 import isEqual from "fast-deep-equal";
+import useCardSelect from "./hook/useCardSelect.ts";
+import {throttle} from "lodash";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -62,6 +68,9 @@ const Container = styled(MainContainer)`
     //     display: flex;
     // }
     
+    .not-allowed { // 자기 자신에 드롭 불가
+        //cursor: default !important;
+    }
 `
 
 // 자식 컴포넌트에서 노출할 ref 타입
@@ -92,9 +101,8 @@ const RichEditor = () => {
         {data: {html: '3'}, id: crypto.randomUUID(), mode: 'default'},
         {data: {html: '4'}, id: crypto.randomUUID(), mode: 'default'},
     ]) // 출력할 데이터
-    // const {editorDragBtn, editorPlusBtn} = useTooltip()
-    const {editorDragBtn} = useTooltip()
-    // const {state: {isTooltip}} = useRichEditorContext()
+    const {editorDragBtn, editorPlusBtn} = useTooltip()
+    const {state: {isTooltip}} = useRichEditorContext()
 
     // ------ 최신 카드 데이터 가져오는 함수 ------
     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
@@ -143,49 +151,57 @@ const RichEditor = () => {
     // ---------- history 이벤트 핸들러 ----------
     useEffect(() => setCurrentRecord(current), [current]); // 위에서 current 데이터 사용하기 위함
 
+    // repeat 시 너무 빨라서 문제가 생김...
+    const throttledUndo = throttle(() => { // 일정 시간동안 사용할 수 없도록 막기 속도 조절
+        undo()
+    }, 20, {trailing: false})
+    const throttledRedo = throttle(() => { // 일정 시간동안 사용할 수 없도록 막기 속도 조절
+        redo()
+    }, 20 , {trailing: false})
+
     useEffect(() => {
         eventManager.addEventListener('keydown', 'RichEditor', (event: Event) => {
-                const e = event as KeyboardEvent
-                if (e.ctrlKey && e.key.toLowerCase() === 'z' ) {
-                    e.preventDefault() // 브라우저 기본 뒤로 가기 방지
-                    undo()
-                }
-                if (e.ctrlKey && e.key.toLowerCase() === 'y' ) {
-                    e.preventDefault() // 브라우저 기본 앞으로 가기 방지
-                    redo()
-                }
+            const e = event as KeyboardEvent
+            if (e.ctrlKey && e.key.toLowerCase() === 'z' ) {
+                e.preventDefault() // 브라우저 기본 뒤로 가기 방지
+                if (e.repeat) throttledUndo() // 속도 조절
+                else undo()
             }
-        )
+            if (e.ctrlKey && e.key.toLowerCase() === 'y' ) {
+                e.preventDefault() // 브라우저 기본 앞으로 가기 방지
+                if (e.repeat) throttledRedo() // 속도 조절
+                else redo()
+            }
+        })
 
         return () => eventManager.removeEventListener('keydown', 'RichEditor')
     }, [undo, redo]);
 
     // 커서 위치 저장을 위한 Element 객체 담기
-    // const [selectedIndex, setSelectedIndex] = useState<number|null>(null)
-    // useCardSelect(cards, selectedIndex, cardRefs.current)
+    const [selectedIndex, setSelectedIndex] = useState<number|null>(null)
+    useCardSelect(cards, selectedIndex, cardRefs.current)
 
     const handleCard = (index: number) => ({
         onFocus: (e: FocusEvent<HTMLDivElement>) => {
             setCurrentEditElement(e.target as HTMLElement) // 어차피 계산 방식 상 어떤 타겟이든 상관 없음
-            console.log(index)
-            // setSelectedIndex(index)
+            setSelectedIndex(index)
         },
         onBlur: () => {
             setCurrentEditElement(null)
-            // setSelectedIndex(null)
+            setSelectedIndex(null)
         }
     })
-    // const handleAddCard = (index: number) => ({
-    //     onClick: () => {
-    //         // const addIndex = index + 1
-    //     }
-    // })
-    //
-    // const handleDeleteCard = (index: number) => ({
-    //     onClick: () => {
-    //         // onDeleteCard(index)
-    //     }
-    // })
+    const handleAddCard = (index: number) => ({
+        onClick: () => {
+            // const addIndex = index + 1
+        }
+    })
+
+    const handleDeleteCard = (index: number) => ({
+        onClick: () => {
+            // onDeleteCard(index)
+        }
+    })
 
     return (<DragDropProvider useDrop={handleDrop}><Container>
         {cards.map((card, index) => {
@@ -199,7 +215,7 @@ const RichEditor = () => {
                                 <Options>
                                     {/* DragOption = Option */}
                                     <DragOption><Comment />댓글</DragOption>
-                                    {/*<DragOption {...handleDeleteCard(index)}><Trash />삭제</DragOption>*/}
+                                    <DragOption {...handleDeleteCard(index)}><Trash />삭제</DragOption>
                                     <DragOption><Copy />복제</DragOption>
                                     <DragOption><Swap />전환</DragOption>
                                     <SelectProvider>
@@ -224,14 +240,14 @@ const RichEditor = () => {
                 {/* 카드 나누는 기준 + 카드 추가 */}
                 <CardDivider>
                     {toIndex === index? <CardDividerLine/>: null}
-                    {/*<TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={editorPlusBtn} />*/}
+                    <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={editorPlusBtn} />
                 </CardDivider>
                 {/* 드롭 영역 상|하 (드래그 상태!==-1 && 현재 드롭할 곳이 아님 === -1) */}
                 <DropZone data-select-index={index-1}><TopDropZone className={(fromIndex !== -1) && (toIndex === -1)? 'not-allowed':''} /></DropZone>
                 <DropZone data-select-index={index}><BottomDropZone className={(fromIndex !== -1)  && (toIndex === -1)? 'not-allowed':''} /></DropZone>
             </Section>)
         })}
-        {/*{isTooltip? <TextToolbar />:null}*/}
+        {isTooltip? <TextToolbar />:null}
     </Container></DragDropProvider>)
 }
 

@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
 import {eventManager} from "../../global/event.ts";
+import {debounce} from "lodash";
 
 interface  SearchOffsetState {
     pos: number;
@@ -147,7 +148,7 @@ const useCursorManager = () => {
             document.removeEventListener('blur', handleBlur, true)
         }
     }, []);
-    useEffect(() => { // 위치 계산하는 동안 클릭등의 이벤트가 들어왔다면 커서 이동 취소하기 그 사이 입력도 막아야 하나 아직 고민임 써보고 불편하면 ㅇㅇ
+    useLayoutEffect(() => { // 위치 계산하는 동안 클릭등의 이벤트가 들어왔다면 커서 이동 취소하기 그 사이 입력도 막아야 하나 아직 고민임 써보고 불편하면 ㅇㅇ
         if (!movePosition || !canMove) return
         const range = document.createRange();
         const selection = window.getSelection();
@@ -199,7 +200,9 @@ const useCursorManager = () => {
         }
 
     }, [])
-    const moveCursor = useCallback((element: HTMLElement|null, startPos: number, endPos: number) => {
+
+    // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
+    const moveCursor = useCallback(() => debounce((element: HTMLElement|null, startPos: number, endPos: number) => {
         if (!element) return;
         setCanMove(true)
 
@@ -215,7 +218,7 @@ const useCursorManager = () => {
         searchNodes(nodes, state, 0, startPos, true);
         const startContainer = state.node
         const startOffset = state.offset
-        
+
         // endContainer 조회
         const remainingNodes = nodes.slice(state.index)
         searchNodes(remainingNodes, state, state.previousLength, endPos, false);
@@ -230,7 +233,7 @@ const useCursorManager = () => {
                 endOffset: endOffset
             })
         }
-    }, [searchNodes])
+    }, 100), [searchNodes])
 
 
     return {getCursorOffsets, moveCursor}
