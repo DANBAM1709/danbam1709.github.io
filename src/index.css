@@ -16,12 +16,20 @@
   --sidebar-width: 240px;
   --footer-height: 32px;
   --content-width: 708px;
+  /*--section-padding: calc((100% - var(--content-width))/ 2);*/
+
   --line-height: 1.5;
 
   /* 리치 에디터 */
   --editor-padding-top: calc(var(--header-height) + 80px);
 }
 
+body {
+  user-select: none; /* 드래그 불가 */
+}
+*:focus {
+  outline: none;
+}
 a {
   font-weight: 500;
   color: #646cff;
@@ -99,6 +107,10 @@ button:focus-visible {
 
 .selected {
   background: #2383e247;
+}
+
+.muted {
+  opacity: 0.6;
 }
 
 
