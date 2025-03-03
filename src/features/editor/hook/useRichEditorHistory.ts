@@ -17,7 +17,7 @@ import {Data} from "../RichEditor.tsx";
 const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestData: (params?: {getCards?: () => CardProps[], canUpdate?: boolean}) => Data) => {
 
     // ========= history 관리를 위한 데이터 관리 =========
-    const {present, current, undo, redo, updateHistory} = useHistory<Data>(getLatestData)
+    const {present, current, undo, redo, updateHistory} = useHistory<Data>()
 
     const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
 
@@ -33,6 +33,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
     }, [present]);
 
     const {moveCursor} = useCursorManager()
+
     // ---------- 카드 업뎃 후 랜더링 감지 이벤 ----------
     useEffect(() => {
         eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
