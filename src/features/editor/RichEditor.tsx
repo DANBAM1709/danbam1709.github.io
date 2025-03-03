@@ -36,6 +36,7 @@ import useCardDragDrop from "./hook/useCardDragDrop.ts";
 import useRichEditorHistory from "./hook/useRichEditorHistory.ts";
 import useCursorManager from "../../common/hook/useCursorManager.ts";
 import isEqual from "fast-deep-equal";
+import useCardSelect from "./hook/useCardSelect.ts";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -103,6 +104,9 @@ const RichEditor = () => {
     const {state: {isTooltip}} = useRichEditorContext()
 
     // ------ 최신 카드 데이터 가져오는 함수 ------
+    const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
+    const {getCursorOffsets} = useCursorManager()
+    const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
     const getLatestCards = useCallback(() => { // 최신 카드 데이터
         if (!cards) return cards
         return (cards.map((card) => ({
@@ -112,11 +116,6 @@ const RichEditor = () => {
         })))
     }, [cards]);
     const [currentRecord, setCurrentRecord] = useState<Data|null>(null) // present
-
-    // ========= 최신 데이터 가져오는 함수 =========
-    const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
-    const {getCursorOffsets} = useCursorManager()
-    const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
     const getLatestData = useCallback((params?: {getCards?: () => CardProps[], canUpdate?: boolean}): Data => {
         const { getCards = getLatestCards, canUpdate = false } = params || {}; // 선택적으로 인자 전달 가능
         const latestCards = getCards()
@@ -138,8 +137,12 @@ const RichEditor = () => {
     }, [currentEditElement, currentRecord, getCursorOffsets, getLatestCards, getLatestScroll])
 
     // ------ history 관리 ------
-    const {handleCard, undo, redo, updateHistory, current} = useRichEditorHistory(setCards, getLatestData)
-    const updateHistoryWithLatestData = useCallback((updateCards?: CardProps[]) => updateHistory(getLatestData({getCards: () => updateCards ?? getLatestCards()})), [getLatestCards, getLatestData, updateHistory])
+    const {handleHistory, undo, redo, updateHistory, current} = useRichEditorHistory(setCards, getLatestData)
+    const updateHistoryWithLatestData = useCallback((updateCards?: CardProps[]) =>{
+        const latestCards = getLatestData({getCards: () => updateCards ?? getLatestCards()})
+        setCards(latestCards?.cards ?? [])
+        updateHistory(latestCards)
+    }, [getLatestCards, getLatestData, updateHistory])
 
     // ------ 드래그 & 드랍 ------
     const {handleDrop, fromIndex, toIndex} = useCardDragDrop(cards, cardRefs.current, updateHistoryWithLatestData)
@@ -165,16 +168,19 @@ const RichEditor = () => {
     }, [undo, redo]);
 
     // 커서 위치 저장을 위한 Element 객체 담기
-    const handleCardOverride= {
-        ...handleCard,
-        onFocus: (e: FocusEvent<HTMLDivElement>) => {
-            setCurrentEditElement(e.target as HTMLElement)
-        },
-        onBlur: () => { // blur 가 먼저임
-            setCurrentEditElement(null) // 선택 요소 제거
-        },
-    }
+    const [selectedIndex, setSelectedIndex] = useState<number|null>(null)
+    // useCardSelect(cards, selectedIndex, cardRefs.current)
 
+    const handleCard = (index: number) => ({
+        onFocus: (e: FocusEvent<HTMLDivElement>) => {
+            setCurrentEditElement(e.target as HTMLElement) // 어차피 계산 방식 상 어떤 타겟이든 상관 없음
+            setSelectedIndex(index)
+        },
+        onBlur: () => {
+            setCurrentEditElement(null)
+            setSelectedIndex(null)
+        }
+    })
     const handleAddCard = (index: number) => ({
         onClick: () => {
             // const addIndex = index + 1
@@ -212,7 +218,7 @@ const RichEditor = () => {
                         </SelectProvider></Draggable>
                     </ActionTool>: null}
                     {/* 카드 선택 */}
-                    <Card {...handleCardOverride}><CardSelector ref={el => {
+                    <Card {...handleHistory}><CardSelector {...handleCard(index)} ref={el => {
                         if (el) {
                             cardRefs.current[card.id] = el
                         } else { // 언마운트시 실행된다는데 인 필요

@@ -1,7 +1,7 @@
 import styled from "styled-components";
-import SelectBtn from "../select/SelectBtn.tsx";
-import Options from "../select/Options.tsx";
-import Option from "../select/Option.tsx";
+import SelectBtn from "../../common/select/SelectBtn.tsx";
+import Options from "../../common/select/Options.tsx";
+import Option from "../../common/select/Option.tsx";
 
 const DraggableCard = styled.div.attrs({ tabIndex: 0 })`
     width: fit-content;
