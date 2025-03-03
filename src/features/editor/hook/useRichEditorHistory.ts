@@ -1,91 +1,46 @@
 import {
     CompositionEvent,
     Dispatch,
-    FocusEvent,
     FormEvent,
     KeyboardEvent as ReactKeyboardEvent,
     SetStateAction,
-    useCallback,
     useEffect,
     useLayoutEffect,
     useState
 } from "react";
-import {CardProps} from "./CardSelector.tsx";
-import isEqual from "fast-deep-equal";
-import {eventManager} from "../../global/event.ts";
-import useCursorManager from "../../common/hook/useCursorManager.ts";
-import useHistory from "../../common/hook/useHistory.ts";
+import {CardProps} from "../CardSelector.tsx";
+import {eventManager} from "../../../global/event.ts";
+import useCursorManager from "../../../common/hook/useCursorManager.ts";
+import useHistory from "../../../common/hook/useHistory.ts";
+import {Data} from "../RichEditor.tsx";
 
-type Cursor = { // 마커로 표시
-    startPos: number
-    endPos: number
-    element: HTMLElement|null
-} | null
-interface Scroll {
-    x: number
-    y: number
-}
-type Data = {
-    cards: CardProps[]
-    cursor: Cursor
-    scroll: Scroll
-} | null
-
-const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestCards: () => CardProps[]) => {
-    const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
-    const [currentRecord, setCurrentRecord] = useState<Data|null>(null) // present
-
-    // ========= 최신 데이터 가져오는 함수 =========
-    const {getCursorOffsets, moveCursor} = useCursorManager()
-    const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
-    const getLatestData = useCallback((params?: {getCards?: () => CardProps[], canUpdate?: boolean}): Data => {
-        const { getCards = getLatestCards, canUpdate = false } = params || {}; // 선택적으로 인자 전달 가능
-        const latestCards = getCards()
-        if (!canUpdate && isEqual(currentRecord?.cards, latestCards)) return currentRecord
-
-        const cursorPos = getCursorOffsets(currentEditElement)
-        let cursor = null
-
-        if (cursorPos) {
-            const {startPos, endPos} = cursorPos
-            cursor = {startPos: startPos, endPos: endPos, element: currentEditElement}
-        }
-        
-        return {
-            cards: latestCards,
-            cursor: cursor,
-            scroll: getLatestScroll()
-        }
-    }, [currentEditElement, currentRecord, getCursorOffsets, getLatestCards, getLatestScroll])
+const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestData: (params?: {getCards?: () => CardProps[], canUpdate?: boolean}) => Data) => {
 
     // ========= history 관리를 위한 데이터 관리 =========
     const {present, current, undo, redo, updateHistory} = useHistory<Data>(getLatestData)
-    useEffect(() => setCurrentRecord(current), [current]); // 위에서 current 데이터 사용하기 위함
 
-    const [isCardsUpdateFromUndoRedo, setIsCardsUpdateFromUndoRedo] = useState<boolean>(false) // 카드 업뎃 후 history 업뎃 방지
     const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
 
     // ---------- undo | redo 발생하면 ----------
     useEffect(() => { // undo | redo 이벤트가 발생하면
-        if (!present) return
-        const data = present.present
+        if (!current) return
+        const data = current
         if (!data) return;
 
-        setCanUpdatePosition(true)
-        setIsCardsUpdateFromUndoRedo(true) // 카드 업뎃 후 history 업뎃 방지
         const deepCopiedObject = structuredClone(data.cards);
         setCards(deepCopiedObject)
+    }, [current, present]);
+    useEffect(() => {
+        if (!current) return
+        setCanUpdatePosition(true)
     }, [present]);
-    useEffect(() => { // 카드 업뎃 시 history 업뎃
-        setIsCardsUpdateFromUndoRedo(false)
-        if (isCardsUpdateFromUndoRedo) return // history 업뎃 방지
-        updateHistory(getLatestData({getCards: ()=>cards}))
-    }, [cards]);
-    
+
+    const {moveCursor} = useCursorManager()
     // ---------- 카드 업뎃 후 랜더링 감지 이벤 ----------
     useEffect(() => {
         eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
             setCanUpdatePosition(false)
+            console.log(canUpdatePosition)
             if (!canUpdatePosition || !current?.cursor) return
             const {startPos, endPos, element: node} = current.cursor
             moveCursor(node, startPos, endPos)
@@ -110,12 +65,6 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
     }, [isEraseMode]);
 
     const handleCard = { // history 업데이트를 위한 이벤트 핸들러
-        onFocus: (e: FocusEvent<HTMLDivElement>) => {
-            setCurrentEditElement(e.currentTarget as HTMLElement)
-        },
-        onBlur: () => { // blur 가 먼저임
-            setCurrentEditElement(null) // 선택 요소 제거
-        },
         onMouseDown: () => {
             setIsEraseMode(null)
         },
@@ -181,7 +130,7 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
         },
     }
 
-    return {handleCard, undo, redo}
+    return {handleCard, undo, redo, updateHistory, current}
 
 }
 
