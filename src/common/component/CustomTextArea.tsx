@@ -29,19 +29,18 @@ const Container = styled(ContentEditable)`
 export interface CustomTextAreaElement extends HTMLDivElement {
     setInnerHTML(newHTML: string): void;
 }
-type Props = ComponentPropsWithoutRef<'div'> & {children?: string}
+type Props = ComponentPropsWithoutRef<'div'> & {html?: {html: string}}
 
-const TextArea = forwardRef<CustomTextAreaElement, Props>(({children, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
+const CustomTextArea = forwardRef<CustomTextAreaElement, Props>(({html, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
-    const [html, setHtml] = useState<string>('')
-    const textAreaRef = useRef<HTMLDivElement>(null)
-    const [isChildrenChange, setIsChildrenChange] = useState(false) // 토글 트리거임
+    const [innerHTML, setInnerHTML] = useState<string>('')
+    const textAreaRef = useRef<CustomTextAreaElement>(null)
 
     useImperativeHandle(ref, () => {
         if (textAreaRef.current) {
             return Object.assign(textAreaRef.current, {
                 setInnerHTML: (newHTML: string) => {
-                    setHtml(newHTML)
+                    setInnerHTML(newHTML)
                 }
             }) as CustomTextAreaElement
         }
@@ -49,21 +48,29 @@ const TextArea = forwardRef<CustomTextAreaElement, Props>(({children, onChange, 
     });
 
     useEffect(() => {
-        if (children) setHtml(children ?? '')
-        setIsChildrenChange(true)
-    }, [children]);
+        setInnerHTML(html?.html ?? '')
+    }, [html]);
 
     useEffect(() => {
-        setIsChildrenChange(false)
-        if (!isChildrenChange) return
+        if (!textAreaRef.current) return
 
-        const event = new CustomEvent('customTextAreaChange', {detail: html.length})
-        document.dispatchEvent(event) // html 변경시 이벤트
-    }, [html]);
+        const observer = new MutationObserver(() => {
+            const event = new CustomEvent('customTextAreaChange', {detail: textAreaRef.current})
+            document.dispatchEvent(event) // html 변경시 이벤트
+        });
+
+        observer.observe(textAreaRef.current, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        });
+
+        return () => observer.disconnect()
+    }, []);
 
     const handler = {
         onChange: (e: ContentEditableEvent) => {
-            setHtml(e.target.value)
+            setInnerHTML(e.target.value)
             if (onChange) onChange(e)
         },
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
@@ -77,7 +84,7 @@ const TextArea = forwardRef<CustomTextAreaElement, Props>(({children, onChange, 
                 range.insertNode(tabNode)
                 range.setStartAfter(tabNode) // 커서 이동
 
-                setHtml(e.currentTarget.innerHTML ?? '')
+                setInnerHTML(e.currentTarget.innerHTML ?? '')
             }
 
             if (e.key === 'Escape') { // ESC 선택영역 없애기
@@ -102,16 +109,10 @@ const TextArea = forwardRef<CustomTextAreaElement, Props>(({children, onChange, 
 
     return (
         <Container innerRef={textAreaRef} tabIndex={0} tagName={'div'}
-                   suppressContentEditableWarning={true} html={html}
+                   suppressContentEditableWarning={true} html={innerHTML}
                    {...handler} {...props}
         />
     )
 })
 
-// el: HTMLElement <br />
-// return CustomTextArea 인지 확인
-// export const isCustomTextAreaElement = (el: HTMLElement): el is CustomTextAreaElement => {
-//     return 'setInnerHTML' in el
-// }
-
-export default TextArea
+export default CustomTextArea
