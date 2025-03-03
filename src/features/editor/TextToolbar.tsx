@@ -1,10 +1,9 @@
 import styled from "styled-components";
 import {ComponentPropsWithoutRef, CSSProperties, useEffect, useState} from "react";
-import {useSelection} from "../global/hook.ts";
-import {eventManager} from "../global/event.ts";
+import {eventManager} from "../../global/event.ts";
 
 // 3 개 중 하나의 형태를 만족해야 한다
-// const keys = ['color', 'size', 'fontWeight'] as const
+const keys = ['color', 'size', 'fontWeight'] as const
 
 type StyleDict =
     | { color: string }
@@ -82,8 +81,27 @@ const onClick = (style: StyleDict) => {
 
     // const spans = cloneContents?.querySelectorAll('span')
     // console.log(text)
-    
 
+
+    // const divs = cloneContents?.querySelectorAll('div')
+    // console.log(cloneContents)
+    // if (divs) {}
+
+    // if (!range || !cloneContents) return
+    // const divs = cloneContents?.querySelectorAll('div')
+    // console.log(divs)
+    // console.log('으잉')
+    //
+    // if(!divs || divs.length === 0) {
+    //     const spans = cloneContents?.querySelectorAll('span')
+    //     console.log(spans)
+    //     updateStyle(style, range, cloneContents)
+    // } else {
+    //     Array.from(divs).forEach(div => {
+    //         console.log(div)
+    //         // updateStyle(style, range, div)
+    //     })
+    // }
 
 
 
@@ -112,7 +130,7 @@ const onClick = (style: StyleDict) => {
 }
 
 const TextToolbar = ({...rest}: ComponentPropsWithoutRef<'div'> ) => {
-    const selection = useSelection()
+    const selection = window.getSelection()
     const [isSelected, setIsSelected] = useState<number>(0)
     const [style, setStyle] = useState<CSSProperties>({left: 0, top: 0, display: 'none'}) // 툴바 위치 조정
 
@@ -126,11 +144,20 @@ const TextToolbar = ({...rest}: ComponentPropsWithoutRef<'div'> ) => {
             setIsSelected(pre => pre + 1) // 선택 영역이 있을 경우
         }
 
-        eventManager.addEventListener('selectionchange', 'TextToolbar', handleSelectionChange)
+        eventManager.addEventListener('customCursorEvent', 'TextToolbar', (event: Event) => {
+            const e = event as CustomEvent
+            const isSelection = e.detail.selection
+            if (isSelection) { // 선택영역 변경
+
+            } else { // 선택 영역 없어짐
+
+            }
+        })
+        // eventManager.addEventListener('selectionchange', 'TextToolbar', handleSelectionChange)
         eventManager.addEventListener('scroll', 'TextToolbar', handleSelectionChange)
 
         return () => {
-            eventManager.removeEventListener('selectionchange', 'TextToolbar')
+            // eventManager.removeEventListener('selectionchange', 'TextToolbar')
             eventManager.removeEventListener('scroll', 'TextToolbar')
         }
     }, [selection]);
