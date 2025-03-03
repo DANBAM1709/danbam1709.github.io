@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
 import {eventManager} from "../../global/event.ts";
 import {debounce} from "lodash";
 
@@ -202,7 +202,7 @@ const useCursorManager = () => {
     }, [])
 
     // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
-    const moveCursor = useCallback(() => debounce((element: HTMLElement|null, startPos: number, endPos: number) => {
+    const moveCursor = useCallback((element: HTMLElement | null, startPos: number, endPos: number) => {
         if (!element) return;
         setCanMove(true)
 
@@ -233,10 +233,14 @@ const useCursorManager = () => {
                 endOffset: endOffset
             })
         }
-    }, 100), [searchNodes])
+    }, [searchNodes])
+    
+    const debounceMoveCursor = useMemo(() => {
+        return debounce(moveCursor, 5)
+    }, [moveCursor])
 
 
-    return {getCursorOffsets, moveCursor}
+    return {getCursorOffsets, moveCursor: debounceMoveCursor}
 }
 
 export default useCursorManager
