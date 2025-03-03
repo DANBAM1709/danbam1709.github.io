@@ -13,13 +13,13 @@ import {
 import {CardProps} from "./CardSelector.tsx";
 import isEqual from "fast-deep-equal";
 import {eventManager} from "../../global/event.ts";
-import useNo from "../../common/hook/useNo.ts";
 import useCursorManager from "../../common/hook/useCursorManager.ts";
+import useHistory from "../../common/hook/useHistory.ts";
 
 type Cursor = { // 마커로 표시
     startPos: number
     endPos: number
-    currentEditable: HTMLElement|null
+    element: HTMLElement|null
 } | null
 interface Scroll {
     x: number
@@ -32,97 +32,69 @@ type Data = {
 } | null
 
 const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestCards: () => CardProps[]) => {
-    const [data, setData] = useState<Data>(null)
-    const [currentEditable, setCurrentEditable] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
-    const [currentData, setCurrentData] = useState<Data|null>(null) // present
+    const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
+    const [currentRecord, setCurrentRecord] = useState<Data|null>(null) // present
 
+    // ========= 최신 데이터 가져오는 함수 =========
     const {getCursorOffsets, moveCursor} = useCursorManager()
-
-    const getLatestScroll = useCallback((): Scroll => { // 최신 스크롤 위치
-        const {scrollX, scrollY} = window
-        return {
-            x: scrollX,
-            y: scrollY
-        }
-    }, []);
-
-    const getDataCommonFunc = useCallback((getCards: () => CardProps[], isNotUpdate: boolean=true): Data => {
-        const cursor = getCursorOffsets(currentEditable)
-        let startPos = 0, endPos = 0
-        if (cursor) {
-            startPos = cursor.startPos
-            endPos = cursor.endPos
-        }
+    const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
+    const getLatestData = useCallback((params?: {getCards?: () => CardProps[], canUpdate?: boolean}): Data => {
+        const { getCards = getLatestCards, canUpdate = false } = params || {}; // 선택적으로 인자 전달 가능
         const latestCards = getCards()
-        if (isNotUpdate && currentData && isEqual(currentData.cards, latestCards)) {
-            return currentData
+        if (!canUpdate && isEqual(currentRecord?.cards, latestCards)) return currentRecord
+
+        const cursorPos = getCursorOffsets(currentEditElement)
+        let cursor = null
+
+        if (cursorPos) {
+            const {startPos, endPos} = cursorPos
+            cursor = {startPos: startPos, endPos: endPos, element: currentEditElement}
         }
+        
         return {
             cards: latestCards,
-            cursor: {startPos: startPos, endPos: endPos, currentEditable: currentEditable},
+            cursor: cursor,
             scroll: getLatestScroll()
         }
-    }, [currentData, currentEditable, getCursorOffsets, getLatestScroll])
+    }, [currentEditElement, currentRecord, getCursorOffsets, getLatestCards, getLatestScroll])
 
-    // 모든 최신 데이터 가져오기 false 를 전달하면 카드랑 상관없이 데이터 업데이트
-    const getLatestData = useCallback((isNotUpdate: boolean=true):Data => getDataCommonFunc(getLatestCards, isNotUpdate), [getLatestCards, getDataCommonFunc])
-    // 카드 업데이트시 데이터 업데이트
-    const createCardUpdateData = useCallback(():Data => getDataCommonFunc(() => cards), [cards, getDataCommonFunc])
+    // ========= history 관리를 위한 데이터 관리 =========
+    const {present, current, undo, redo, updateHistory} = useHistory<Data>(getLatestData)
+    useEffect(() => setCurrentRecord(current), [current]); // 위에서 current 데이터 사용하기 위함
 
-    // ------ 카드 업데이트 ------
-    const [isCardUpdate, setIsCardUpdate] = useState(false) // undo|redo 시 중복 업 방지
-    const [isDataUpdate, setIsDataUpdate] = useState(false) // undo|redo 시 중복 업 방지
-    const [isUpdateToRender, setIsUpdateToRender] = useState(false) // undo|redo 시 중복 업 방지
-    const [isUpdateNoRender, setIsUpdateNoRender] = useState(false) // 랜더링 없이 커서 위치만 이동
+    const [isCardsUpdateFromUndoRedo, setIsCardsUpdateFromUndoRedo] = useState<boolean>(false) // 카드 업뎃 후 history 업뎃 방지
+    const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
 
-    useEffect(() => { // 카드 변경으로 인한 상태 업데이트
-        if (!cards || cards.length === 0) return
-        if (isEqual(cards, data?.cards)) return
-        if (isDataUpdate) return
-        setIsCardUpdate(true)
-        setData(createCardUpdateData())
-    }, [cards]);
+    // ---------- undo | redo 발생하면 ----------
+    useEffect(() => { // undo | redo 이벤트가 발생하면
+        if (!present) return
+        const data = present.present
+        if (!data) return;
 
-    // ------ undo|redo 업데이트 ------
-    useEffect(() => { // undo|redo 상태 업데이트
-        if (!data || isCardUpdate) return;
-        setIsDataUpdate(true)
-
-        if (isEqual(data.cards, cards)) {
-            setIsUpdateNoRender(true) // 랜더링 없는 데이터 업데이트
-        } else {
-            setCards(data.cards) // 카드 랜더링
-            setIsUpdateToRender(true) // 랜더링 후 커서, 스크롤 이동 검증용
-        }
-    }, [data])
-
-    const {present, updateHistory, undo, redo} = useNo<Data>(data, setData, getLatestData)
-    // 설정 초기화 setData 되기 전에 present 먼저 변경되므로 OK
-    useEffect(() => {
-        setCurrentData(present)
-        setIsDataUpdate(false)
-        setIsCardUpdate(false)
+        setCanUpdatePosition(true)
+        setIsCardsUpdateFromUndoRedo(true) // 카드 업뎃 후 history 업뎃 방지
+        const deepCopiedObject = structuredClone(data.cards);
+        setCards(deepCopiedObject)
     }, [present]);
-    // 카드 업데이트 없이 커서 이동 등 undo redo 이벤트
+    useEffect(() => { // 카드 업뎃 시 history 업뎃
+        setIsCardsUpdateFromUndoRedo(false)
+        if (isCardsUpdateFromUndoRedo) return // history 업뎃 방지
+        updateHistory(getLatestData({getCards: ()=>cards}))
+    }, [cards]);
+    
+    // ---------- 카드 업뎃 후 랜더링 감지 이벤 ----------
     useEffect(() => {
-        if (isUpdateNoRender && data?.cursor) {
-            const {startPos, endPos, currentEditable: node} = data.cursor
-            moveCursor(node, startPos, endPos)
-            setIsUpdateNoRender(false)
-        }
-    }, [isUpdateNoRender]);
-    useEffect(() => { // data 변경으로 인한 카드 랜더링 후
         eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
-            if (!isUpdateToRender || !data?.cursor) return
-
-            const {startPos, endPos, currentEditable: node} = data.cursor
+            setCanUpdatePosition(false)
+            if (!canUpdatePosition || !current?.cursor) return
+            const {startPos, endPos, element: node} = current.cursor
             moveCursor(node, startPos, endPos)
-            setIsUpdateToRender(false)
         })
 
         return () => eventManager.removeEventListener('customTextAreaChange', 'RichEditor')
-    }, [isUpdateToRender, data, cards, moveCursor]);
+    }, [moveCursor, canUpdatePosition, current]);
 
+    // ------ history 저장 이벤 ------
     const [prevUnicode, setPrevUnicode] = useState<number>(-1) // 한글 삭제 감지를 위함
     const [isInValidation, setIsInValidation] = useState<boolean>(false) // beforeInputTrigger 가 되는지 여부를 감지하는 검증 단계로 들어가는 그런 것
     const [isEraseMode, setIsEraseMode] = useState<boolean|null>(null) // 삭제 모드 null 은 초기상태
@@ -130,7 +102,7 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
     // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
     useLayoutEffect(() => {
         if (isEraseMode === null) {
-            updateHistory(getLatestData(false)) // 초기 상태가 아닐 때
+            updateHistory(getLatestData({canUpdate: true})) // 초기 상태가 아닐 때
             return
         }
         // 삭제 | 입력 모드 전환 타이밍
@@ -139,10 +111,10 @@ const useRichEditorHistory = (cards: CardProps[], setCards: Dispatch<SetStateAct
 
     const handleCard = { // history 업데이트를 위한 이벤트 핸들러
         onFocus: (e: FocusEvent<HTMLDivElement>) => {
-            setCurrentEditable(e.currentTarget as HTMLElement)
+            setCurrentEditElement(e.currentTarget as HTMLElement)
         },
         onBlur: () => { // blur 가 먼저임
-            setCurrentEditable(null) // 선택 요소 제거
+            setCurrentEditElement(null) // 선택 요소 제거
         },
         onMouseDown: () => {
             setIsEraseMode(null)
