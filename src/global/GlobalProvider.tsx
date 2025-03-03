@@ -1,15 +1,13 @@
-import {ReactElement, useEffect, useMemo, useState} from "react";
+import {ReactElement, useMemo} from "react";
 import GlobalContext from "./GlobalContext.ts";
+import tooltip from '../assets/resources/tooltip.json'
 
 
 const GlobalProvider = ({children} : {children: ReactElement}) => {
-    const [selection, setSelection] = useState<Selection|null>(null)
 
-    useEffect(() => {
-        setSelection(window.getSelection())
-    }, []);
-
-    const value = useMemo(() => ({selection: selection}), [selection])
+    const value = useMemo(() => ({
+        tooltip: tooltip
+    }), [])
 
     return (<GlobalContext.Provider value={value}>{children}</GlobalContext.Provider>)
 }

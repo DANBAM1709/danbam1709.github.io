@@ -1,11 +1,13 @@
 import {createContext} from "react";
 
 interface GlobalContextType {
-    selection: Selection|null
+    tooltip: {
+        [key: string]: string
+    },
 }
 
 const GlobalContext = createContext<GlobalContextType>({
-    selection: null
+    tooltip: {},
 })
 
 export default GlobalContext
