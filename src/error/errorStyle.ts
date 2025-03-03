@@ -6,7 +6,9 @@ const errorStyle: CSSProperties = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    userSelect: 'text',
+    pointerEvents: 'auto'
 }
 
 export default errorStyle
