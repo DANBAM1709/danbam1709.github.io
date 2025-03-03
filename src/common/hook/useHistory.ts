@@ -2,11 +2,12 @@ import isEqual from "fast-deep-equal";
 import {useCallback, useEffect, useState} from "react";
 
 // param getLatestData: () => T <br />
-// return {present:{present: T}, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
+// return {present:{present: T}(undo, redo 일 때만), current: T, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
 const useHistory = <T,>(getLatestData: () => T) => {
     const [isUndo, setIsUndo] = useState<boolean>(false)
     const [isRedo, setIsRedo] = useState<boolean>(false)
     const [index, setIndex] = useState<number>(0)
+    const [current, setCurrent] = useState<T|null>(null)
     const [present, setPresent] = useState<{present: T}|null>(null)
     const [history, setHistory] = useState<T[]>([])
 
@@ -36,12 +37,16 @@ const useHistory = <T,>(getLatestData: () => T) => {
         setIndex(history.length-1)
     }, [history]);
 
+    useEffect(() => {
+        if (history.length > 0) setCurrent(history[index])
+    }, [history, index]);
+
     // Undo STEP 1. history 업로드 여부
     useEffect(() => { // 뒤로 가기
         if (!isUndo) return
 
         const latestData = getLatestData()
-        if (isEqual(latestData, present)) { // 현재 데이터와 같다면
+        if (isEqual(latestData, current)) { // 현재 데이터와 같다면
             setIndex(pre => Math.max(pre-1, 0))
         } else { // 최근 데이터 업데이트
             setIsLockIndex(true)
@@ -70,7 +75,7 @@ const useHistory = <T,>(getLatestData: () => T) => {
     const undo = useCallback(() => setIsUndo(true), [])
     const redo = useCallback(() => setIsRedo(true), [])
 
-    return {present, undo, redo, updateHistory}
+    return {present, current, undo, redo, updateHistory}
 }
 
 export default useHistory
