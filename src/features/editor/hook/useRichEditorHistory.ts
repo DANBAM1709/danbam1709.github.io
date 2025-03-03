@@ -27,12 +27,9 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
         const data = current
         if (!data) return;
 
+        setCanUpdatePosition(true)
         const deepCopiedObject = structuredClone(data.cards);
         setCards(deepCopiedObject)
-    }, [current, present]);
-    useEffect(() => {
-        if (!current) return
-        setCanUpdatePosition(true)
     }, [present]);
 
     const {moveCursor} = useCursorManager()
@@ -40,7 +37,6 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
     useEffect(() => {
         eventManager.addEventListener('customTextAreaChange', 'RichEditor', () => {
             setCanUpdatePosition(false)
-            console.log(canUpdatePosition)
             if (!canUpdatePosition || !current?.cursor) return
             const {startPos, endPos, element: node} = current.cursor
             moveCursor(node, startPos, endPos)
@@ -52,10 +48,13 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
     // ------ history 저장 이벤 ------
     const [prevUnicode, setPrevUnicode] = useState<number>(-1) // 한글 삭제 감지를 위함
     const [isInValidation, setIsInValidation] = useState<boolean>(false) // beforeInputTrigger 가 되는지 여부를 감지하는 검증 단계로 들어가는 그런 것
+    const [isFirstRender, setIsFirstRender] = useState<boolean>(false)
     const [isEraseMode, setIsEraseMode] = useState<boolean|null>(null) // 삭제 모드 null 은 초기상태
 
     // 삭제 모드 또는 글 쓰는 모드로 전환되는 타이밍 저장
     useLayoutEffect(() => {
+        setIsFirstRender(true)
+        if (!isFirstRender) return // 첫 랜더링시 막기
         if (isEraseMode === null) {
             updateHistory(getLatestData({canUpdate: true})) // 초기 상태가 아닐 때
             return
@@ -64,7 +63,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
         updateHistory(getLatestData()) // 초기 상태가 아닐 때
     }, [isEraseMode]);
 
-    const handleCard = { // history 업데이트를 위한 이벤트 핸들러
+    const handleHistory = { // history 업데이트를 위한 이벤트 핸들러
         onMouseDown: () => {
             setIsEraseMode(null)
         },
@@ -130,7 +129,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
         },
     }
 
-    return {handleCard, undo, redo, updateHistory, current}
+    return {handleHistory, undo, redo, updateHistory, current}
 
 }
 
