@@ -38,6 +38,7 @@ const useCardDragDrop = (cards: CardProps[], cardRefs: { [id: string]: GetDataHT
             const insertIndex = fromIndex <= toIndex ? toIndex:toIndex+1 // 이동할 위치
             const [target] = copy.splice(fromIndex, 1) // splice: 삭제 요소 리턴
             copy.splice(insertIndex, 0, target); // 시작 위치, 제거할 요소 개수, 추가할 요소들
+
             updateHistory(copy)
         },
     }), [cardRefs, cards, fromIndex, toIndex, updateHistory])
