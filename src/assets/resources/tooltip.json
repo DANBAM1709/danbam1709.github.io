@@ -1,4 +1,4 @@
 {
-  "editorPlusBtn": "클릭해서 아래에 추가<br />위에 블록을 추가하려면 Ctrl + 클릭",
-  "editorDragBtn": "드래그해서 옮기기<br />ctrl + 클릭해서 메뉴열기"
+  "editorPlusBtn": "클릭 <span class='muted'>블록 추가</span><br />ctrl + 클릭 <span class='muted'>템플릿 선택</span>",
+  "editorDragBtn": "드래그 <span class='muted'>옮기기</span><br />클릭 <span class='muted'>메뉴열기</span>"
 }
