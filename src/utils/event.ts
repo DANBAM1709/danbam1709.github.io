@@ -13,7 +13,10 @@ export const eventManager = {
 
         // 중복 방지: ID 기반으로 체크, 중복이 있으면 삭제 후 추가
         const entryToRemove = Array.from(listenersSet).find((entry) => entry.id === id);
-        if (entryToRemove) document.removeEventListener(type, entryToRemove.callback);
+        if (entryToRemove) {
+            listenersSet.delete(entryToRemove); // 여기서도 삭제해야 함
+            document.removeEventListener(type, entryToRemove.callback)
+        }
 
         listenersSet.add({ id, callback: listener });
         document.addEventListener(type, listener);
@@ -31,7 +34,7 @@ export const eventManager = {
             }
 
             if (listenersSet.size === 0) {
-                this.listeners.delete(type);
+                this.listeners.delete(id);
             }
         }
     },
