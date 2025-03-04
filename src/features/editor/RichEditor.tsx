@@ -38,6 +38,7 @@ import useCursorManager from "../../hook/useCursorManager.ts";
 import isEqual from "fast-deep-equal";
 import useCardSelect from "./hook/useCardSelect.ts";
 import {throttle} from "lodash";
+import GhostContainer from "../../base-style/GhostContainer.tsx";
 
 const Container = styled(MainContainer)`
     font-size: 20px;
@@ -46,16 +47,6 @@ const Container = styled(MainContainer)`
     ${Card}, ${CardDivider} {
         min-width: var(--content-width);
         width: var(--content-width);
-    }
-    ${DragButton} {
-        width: 10px;
-        box-sizing: border-box;
-    }
-    ${ActionTool} {
-        margin-right: 10px;
-    }
-    ${DraggableCard} {
-        margin-right: 26px;
     }
 
     ${Section}[data-lastblock='true'] ${BottomDropZone}{
@@ -96,7 +87,7 @@ const RichEditor = () => {
 
     // ------ 최신 카드 데이터 가져오는 함수 ------
     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
-    const {getCursorOffsets} = useCursorManager()
+    const {getCursorOffsets, moveCursor} = useCursorManager()
     const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
     const getLatestCards = useCallback(() => { // 최신 카드 데이터
         if (!cards) return cards
@@ -161,20 +152,20 @@ const RichEditor = () => {
                 setIsFirstUndo(false)
                 let isEqualData = true // 데이터가 같은지 확인
                 let latestData = null
-                
+
                 if (isFirstUndo) { // 첫번째 undo 라면 데이터 검증
                     latestData = getLatestData()
                     isEqualData = isEqual(latestData, current)
                 }
-                if (!isEqualData) { // 데이터가 같지 않다면 
+                if (!isEqualData) { // 데이터가 같지 않다면
                     updateHistory(latestData) // 데이터 업로드
                     setIsUndoRecorded(true) // 인덱스가 변할 때까지 기다릴 필요가 있어서
                     return;
                 }
-                
+
                 if (e.repeat) throttledUndo() // 누르고 잇는 상태
                 else undo()
-                
+
             } else {
                 setIsFirstUndo(true)
             }
@@ -184,7 +175,7 @@ const RichEditor = () => {
                 else redo()
             }
         })
-        
+
         return () => eventManager.removeEventListener('keydown', 'RichEditor')
     }, [undo, redo, throttledUndo, throttledRedo, isFirstUndo, getLatestData, updateHistory, current]);
 
@@ -200,7 +191,7 @@ const RichEditor = () => {
         onBlur: () => {
             setCurrentEditElement(null)
             setSelectedIndex(null)
-        }
+        },
     })
     const handleAddCard = (index: number) => ({
         onClick: () => {
@@ -217,7 +208,7 @@ const RichEditor = () => {
     return (<DragDropProvider useDrop={handleDrop}><Container>
         {cards.map((card, index) => {
             return (<Section key={card.id} data-lastblock={cards.length === index+1? 'true': undefined}>
-                <DraggableCard>
+                <DraggableCard className={index===0? 'editor-title':''}>
                     {/* 제목이면 드래그 버튼 제외 */}
                     {index !== 0? <ActionTool>
                         <Draggable data-target-index={index}><SelectProvider>
@@ -239,14 +230,14 @@ const RichEditor = () => {
                         </SelectProvider></Draggable>
                     </ActionTool>: null}
                     {/* 카드 선택 */}
-                    <Card {...handleHistory}><CardSelector {...handleCard(index)} ref={el => {
+                    <Card {...handleHistory}><GhostContainer {...handleCard(index)}><CardSelector ref={el => {
                         if (el) {
                             cardRefs.current[card.id] = el
                         } else { // 언마운트시 실행된다는데 인 필요
                             delete cardRefs.current[card.id]
                         }
                     }} mode={card.mode} data={card.data}
-                    /></Card>
+                    /></GhostContainer></Card>
                 </DraggableCard>
                 {/* 카드 나누는 기준 + 카드 추가 */}
                 <CardDivider>
