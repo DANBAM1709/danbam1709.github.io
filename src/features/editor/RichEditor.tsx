@@ -1,6 +1,6 @@
 import styled from "styled-components";
-import MainContainer from "../../common/base-style/MainContainer.tsx";
-import Section from "../../common/base-style/Section.tsx";
+import MainContainer from "../../base-style/MainContainer.tsx";
+import Section from "../../base-style/Section.tsx";
 import Plus from '../../assets/svg/plus.svg?react'
 import Grab from '../../assets/svg/grab.svg?react'
 import {
@@ -16,25 +16,25 @@ import {
     TopDropZone
 } from "./RichEditor.ui.ts";
 import {FocusEvent, useCallback, useEffect, useLayoutEffect, useRef, useState} from "react";
-import TooltipWithComponent from "../../common/component/TooltipWithComponent.tsx";
+import TooltipWithComponent from "../../component/TooltipWithComponent.tsx";
 import CardSelector, {CardProps} from "./CardSelector.tsx";
-import Draggable from "../../common/dragdrop/Draggable.tsx";
-import DragDropProvider from "../../common/dragdrop/DragDropProvider.tsx";
-import DropZone from "../../common/dragdrop/DropZone.tsx";
+import Draggable from "../../dragdrop/Draggable.tsx";
+import DragDropProvider from "../../dragdrop/DragDropProvider.tsx";
+import DropZone from "../../dragdrop/DropZone.tsx";
 import {useTooltip} from "../../global/hook.ts";
-import SelectProvider from "../../common/select/SelectProvider.tsx";
-import Options from "../../common/select/Options.tsx";
+import SelectProvider from "../../select-option/SelectProvider.tsx";
+import Options from "../../select-option/Options.tsx";
 import Comment from '../../assets/svg/comment.svg?react'
 import ColorPicker from '../../assets/svg/color-picker.svg?react'
 import Trash from '../../assets/svg/trash.svg?react'
 import Copy from '../../assets/svg/copy.svg?react'
 import Swap from '../../assets/svg/swap.svg?react'
 import TextToolbar from "./TextToolbar.tsx";
-import {useRichEditorContext} from "../../common/contexts/LayoutContext.ts";
-import {eventManager} from "../../global/event.ts";
+import {useRichEditorContext} from "../../contexts/LayoutContext.ts";
+import {eventManager} from "../../utils/event.ts";
 import useCardDragDrop from "./hook/useCardDragDrop.ts";
 import useRichEditorHistory from "./hook/useRichEditorHistory.ts";
-import useCursorManager from "../../common/hook/useCursorManager.ts";
+import useCursorManager from "../../hook/useCursorManager.ts";
 import isEqual from "fast-deep-equal";
 import useCardSelect from "./hook/useCardSelect.ts";
 import {throttle} from "lodash";
@@ -128,7 +128,7 @@ const RichEditor = () => {
     }, [currentEditElement, currentRecord, getCursorOffsets, getLatestCards, getLatestScroll])
 
     // ------ history 관리 ------
-    const {handleHistory, undo, redo, updateHistory, current} = useRichEditorHistory(setCards, getLatestData)
+    const {handleHistory, undo, redo, updateHistory, current} = useRichEditorHistory(setCards, getLatestData, getLatestCards)
     const updateHistoryWithLatestData = useCallback((updateCards?: CardProps[]) =>{
         const latestCards = getLatestData({getCards: () => updateCards ?? getLatestCards()})
         setCards(latestCards?.cards ?? [])
@@ -185,10 +185,8 @@ const RichEditor = () => {
             }
         })
         
-        return () => {
-            eventManager.removeEventListener('keydown', 'RichEditor')
-        }
-    }, [undo, redo, throttledUndo, throttledRedo, isFirstUndo, getLatestData, updateHistory]);
+        return () => eventManager.removeEventListener('keydown', 'RichEditor')
+    }, [undo, redo, throttledUndo, throttledRedo, isFirstUndo, getLatestData, updateHistory, current]);
 
     // 커서 위치 저장을 위한 Element 객체 담기
     const [selectedIndex, setSelectedIndex] = useState<number|null>(null)
