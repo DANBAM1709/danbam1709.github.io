@@ -4,7 +4,7 @@ import {
     RichEditorAction,
     richEditorReducer,
     RichEditorState
-} from "../../features/editor/richEditor.reducer.ts";
+} from "../features/editor/richEditor.reducer.ts";
 
 // 리치 에디터 reducer Provider
 const {Provider: createRichEditorProvider, useGenericContext: useGenericRichEditorContext} = createReducerContext<RichEditorState, RichEditorAction>(richEditorReducer, initRichEditorState)

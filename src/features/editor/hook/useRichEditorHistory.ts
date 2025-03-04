@@ -9,9 +9,9 @@ import {
     useState
 } from "react";
 import {CardProps} from "../CardSelector.tsx";
-import {eventManager} from "../../../global/event.ts";
-import useCursorManager from "../../../common/hook/useCursorManager.ts";
-import useHistory from "../../../common/hook/useHistory.ts";
+import {eventManager} from "../../../utils/event.ts";
+import useCursorManager from "../../../hook/useCursorManager.ts";
+import useHistory from "../../../hook/useHistory.ts";
 import {Data} from "../RichEditor.tsx";
 import isEqual from "fast-deep-equal";
 
@@ -32,6 +32,10 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
         const deepCopiedObject = structuredClone(data.cards);
         setCards(deepCopiedObject)
     }, [trigger]);
+
+    useEffect(() => {
+        // eventManager.addEventListener()
+    }, []);
 
     const {moveCursor} = useCursorManager()
 

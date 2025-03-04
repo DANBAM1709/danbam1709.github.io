@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
-import {eventManager} from "../../global/event.ts";
+import {eventManager} from "../utils/event.ts";
 import {debounce} from "lodash";
 
 interface  SearchOffsetState {

@@ -1,5 +1,5 @@
 import {MouseEvent, useMemo, useState} from "react";
-import useDrop from "../../../common/dragdrop/useDrop.tsx";
+import useDrop from "../../../dragdrop/useDrop.tsx";
 import {GetDataHTMLElement} from "../RichEditor.tsx";
 import {CardProps} from "../CardSelector.tsx";
 

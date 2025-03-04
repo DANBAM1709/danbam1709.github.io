@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import CustomTextArea, {CustomTextAreaElement} from "../../../common/component/CustomTextArea.tsx";
+import CustomTextArea, {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
 import {forwardRef, useImperativeHandle, useRef} from "react";
 import {GetDataHTMLElement} from "../RichEditor.tsx";
 import {InheritCardProps} from "../CardSelector.tsx";

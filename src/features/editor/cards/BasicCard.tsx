@@ -1,8 +1,8 @@
 import styled from "styled-components";
-import CustomTextArea, {CustomTextAreaElement} from "../../../common/component/CustomTextArea.tsx";
+import CustomTextArea, {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
 import {FocusEvent, forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
 import {GetDataHTMLElement} from "../RichEditor.tsx";
-import {useRichEditorContext} from "../../../common/contexts/LayoutContext.ts";
+import {useRichEditorContext} from "../../../contexts/LayoutContext.ts";
 import {InheritCardProps} from "../CardSelector.tsx";
 
 const BasicTextArea = styled(CustomTextArea)`
