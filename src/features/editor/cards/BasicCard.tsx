@@ -1,6 +1,6 @@
 import styled from "styled-components";
 import CustomTextArea, {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
-import {FocusEvent, forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
+import {forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
 import {GetDataHTMLElement} from "../RichEditor.tsx";
 import {useRichEditorContext} from "../../../contexts/LayoutContext.ts";
 import {InheritCardProps} from "../CardSelector.tsx";
@@ -9,7 +9,7 @@ const BasicTextArea = styled(CustomTextArea)`
     display: block;
 `
 
-const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data, onBlur, onFocus, onKeyDown, ...rest}, ref) => {
+const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data}, ref) => {
     const targetRef = useRef<CustomTextAreaElement>(null)
     const selection = useMemo(() => window.getSelection(), []) // contenteditable 이 빈 상태에서 랜더링되면 랜더링 전 가져온 selection 은 해당 요소에서 null 이 됨
     const {dispatch} = useRichEditorContext()
@@ -68,18 +68,15 @@ const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data, onBlu
                     console.log('아래로')
                 }
             }
-            if (onKeyDown) onKeyDown(e)
         },
-        onFocus: (e: FocusEvent<HTMLDivElement>) => {
+        onFocus: () => {
             dispatch({type: 'TOGGLE_TOOLTIP', payload: true})
-            if (onFocus) onFocus(e)
         },
-        onBlur: (e: FocusEvent<HTMLDivElement>) => {
+        onBlur: () => {
             dispatch({type: 'TOGGLE_TOOLTIP', payload: false})
-            if (onBlur) onBlur(e)
         },
     }
 
-    return (<BasicTextArea ref={targetRef} {...handleTextArea} {...rest} html={data} />)})
+    return (<BasicTextArea ref={targetRef} {...handleTextArea} html={data} />)})
 
 export default BasicCard

@@ -8,7 +8,7 @@ const Title = styled(CustomTextArea)`
     font-size: 32px;
 `
 
-const TitleCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data, ...rest}, ref) => {
+const TitleCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data}, ref) => {
     const targetRef = useRef<CustomTextAreaElement>(null)
 
     useImperativeHandle(ref, () => {
@@ -20,7 +20,7 @@ const TitleCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data, ...re
         throw new Error('BasicStyle ref error!')
     }, []);
 
-    return (<Title ref={targetRef} {...rest} html={data} {...rest} />)
+    return (<Title ref={targetRef} html={data} />)
 })
 
 export default TitleCard
