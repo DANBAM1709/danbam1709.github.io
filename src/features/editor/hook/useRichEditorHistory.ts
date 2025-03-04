@@ -15,10 +15,10 @@ import useHistory from "../../../hook/useHistory.ts";
 import {Data} from "../RichEditor.tsx";
 import isEqual from "fast-deep-equal";
 
-const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestData: (params?: {getCards?: () => CardProps[], canUpdate?: boolean}) => Data) => {
+const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestData: (params?: {getCards?: () => CardProps[], canUpdate?: boolean}) => Data, getLatestCards: () => CardProps[]) => {
 
     // ========= history 관리를 위한 데이터 관리 =========
-    const {trigger, previous, current, undo, redo, updateHistory} = useHistory<Data>()
+    const {trigger, current, undo, redo, updateHistory} = useHistory<Data>()
 
     const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
 
@@ -30,7 +30,14 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
 
         setCanUpdatePosition(true)
         const deepCopiedObject = structuredClone(data.cards);
-        setCards(deepCopiedObject)
+        setCards(deepCopiedObject) // 아앗 이전과 기록이 완전히 동일하다면..
+        const latestCards = getLatestCards()
+        if (isEqual(latestCards, data.cards)) { // 랜더링이 없을 것이므로 커서 등 별도 처리
+            setCanUpdatePosition(false)
+            if (!current?.cursor) return
+            const {startPos, endPos, element: node} = current.cursor
+            moveCursor(node, startPos, endPos)
+        }
     }, [trigger]);
 
     useEffect(() => {
@@ -61,12 +68,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
     useLayoutEffect(() => {
         setIsFirstRender(true)
         if (!isFirstRender) return // 첫 랜더링시 막기
-        if (isEraseMode === null && (!current || !isEqual(current.cards, previous?.cards))) { // 이전과 현재의 카드 상태가 동일하지 않을 경우
-            updateHistory(getLatestData({canUpdate: true})) // 초기 상태가 아닐 때
-            return
-        }
-        // 삭제 | 입력 모드 전환 타이밍
-        updateHistory(getLatestData()) // 초기 상태가 아닐 때
+        updateHistory(getLatestData({canUpdate: true})) // 입력|삭제, 이동 시 위치 저장
     }, [isEraseMode]);
 
     const handleHistory = { // history 업데이트를 위한 이벤트 핸들러
