@@ -13,11 +13,12 @@ import {eventManager} from "../../../global/event.ts";
 import useCursorManager from "../../../common/hook/useCursorManager.ts";
 import useHistory from "../../../common/hook/useHistory.ts";
 import {Data} from "../RichEditor.tsx";
+import isEqual from "fast-deep-equal";
 
 const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, getLatestData: (params?: {getCards?: () => CardProps[], canUpdate?: boolean}) => Data) => {
 
     // ========= history 관리를 위한 데이터 관리 =========
-    const {present, current, undo, redo, updateHistory} = useHistory<Data>()
+    const {trigger, previous, current, undo, redo, updateHistory} = useHistory<Data>()
 
     const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
 
@@ -30,7 +31,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
         setCanUpdatePosition(true)
         const deepCopiedObject = structuredClone(data.cards);
         setCards(deepCopiedObject)
-    }, [present]);
+    }, [trigger]);
 
     const {moveCursor} = useCursorManager()
 
@@ -56,7 +57,7 @@ const useRichEditorHistory = (setCards: Dispatch<SetStateAction<CardProps[]>>, g
     useLayoutEffect(() => {
         setIsFirstRender(true)
         if (!isFirstRender) return // 첫 랜더링시 막기
-        if (isEraseMode === null) {
+        if (isEraseMode === null && (!current || !isEqual(current.cards, previous?.cards))) { // 이전과 현재의 카드 상태가 동일하지 않을 경우
             updateHistory(getLatestData({canUpdate: true})) // 초기 상태가 아닐 때
             return
         }
