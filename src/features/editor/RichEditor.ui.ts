@@ -7,6 +7,10 @@ const DraggableCard = styled.div.attrs({ tabIndex: 0 })`
     width: fit-content;
     height: fit-content;
     display: flex;
+
+    &:not(.editor-title) { // 제목이 아닌 경우
+        margin-right: 26px; // DragButton.width + ActionTool.marginRight 중앙 위치 맞추기 위함 스타일 수정할 수도 있을거 같은데..
+    }
 `
 const Card = styled.div.attrs({ tabIndex: 0 })`
     background: white;
@@ -17,23 +21,26 @@ const ActionTool = styled.div`
     display: flex;
     height: calc(1em * var(--line-height));
     align-items: center;
+    margin-right: 10px; // margin 조절 시 ActionTool margin-right 와 DragButton 의 width 를 살펴봐야 함
 `
 const DragButton = styled(SelectBtn)`
-    border-radius: 0.125em;
+    border-radius: 0.15em;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(0, 0, 0, 0.08);
     transition: background 20ms ease-in, color 20ms ease-in;
     color: rgba(55, 53, 47, 0.4);
-    height: 18px;
+    width: 14px; // 너비 조절시 ActionTool margin-right 와 DraggableCard 의 margin-right 를 살펴봐야 함
+    height: 20px;
+    box-sizing: border-box;
+    cursor: grab;
     
     &:hover {
         background: rgba(55, 53, 47, 0.03);
         color: rgba(55, 53, 47, 0.5);
     }
     
-    & > * {
-        width: 15px;
-        height: 15px;
+    & > * { // svg
+        height: 13px;
     }
 `
 const PlusButton = styled(SelectBtn)`
