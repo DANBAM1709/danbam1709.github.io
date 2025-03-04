@@ -1,12 +1,12 @@
 import isEqual from "fast-deep-equal";
 import {useCallback, useEffect, useState} from "react";
 
-// param getLatestData: () => T <br />
-// return {present:{present: T}(undo, redo 일 때만), current: T, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
+// return {trigger:{present: T}(undo, redo 감지), current: 현재 없으면 null, previous: 이전 없으면 null, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
 const useHistory = <T,>() => {
     const [index, setIndex] = useState<number>(0)
     const [current, setCurrent] = useState<T|null>(null)
-    const [present, setPresent] = useState<{present: T}|null>(null)
+    const [previous, setPrevious] = useState<T|null>(null) // 이전 값
+    const [trigger, setTrigger] = useState<{present: T}|null>(null) // undo, redo 감지 null 은 처음일 때
     const [history, setHistory] = useState<T[]>([])
 
     const [isUndoRedo, setIsUndoRedo] = useState<boolean>(false)
@@ -28,20 +28,16 @@ const useHistory = <T,>() => {
     }, [index])
 
     /* =============== 상태 감지 정의 =============== */
-    // useEffect(() => { // 마지막 인덱스 선택
-    //     if (history?.length === 0) return
-    //     setIndex(history.length-1)
-    //     console.log(index, '인덱스가 변함')
-    // }, [history]);
-
     useEffect(() => {
         if (history.length > 0) setCurrent(history[index])
+        if (index === 0) setPrevious(null)
+        else setPrevious(history[index-1])
     }, [history, index]);
 
     useEffect(() => {
         if (!isUndoRedo || !history) return
         if (index < 0) throw new Error('useHistory: index < 0')
-        setPresent({present: history[index]})
+        setTrigger({present: history[index]})
         setIsUndoRedo(false)
     }, [isUndoRedo]);
 
@@ -57,7 +53,7 @@ const useHistory = <T,>() => {
         setIsUndoRedo(true)
     }, [history, index])
 
-    return {present, current, undo, redo, updateHistory}
+    return {trigger, current, previous, undo, redo, updateHistory}
 }
 
 export default useHistory
