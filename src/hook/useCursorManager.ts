@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from "react";
 import {eventManager} from "../utils/event.ts";
 import {debounce} from "lodash";
 
@@ -16,14 +16,16 @@ interface SearchNodesState {
 
 // return getCursorOffsets(currentEditable: HTMLElement), moveCursor(currentEditable, startPos, endPos)
 const useCursorManager = () => {
+    const [canMove, setCanMove] = useState(true) // 기본 이동 가능 상태 커서가 움직였다면
     const [isSelection, setIsSelection] = useState<boolean>(false) // 선택 영역 감지 0 은 없을 때
-    const isComposingRef = useRef<boolean>(false) // composing 일 땐 선택 영역으로 값이 들어갈 수 있으므로
+    const [isComposing, setIsComposing] = useState<boolean>(false)
 
     useEffect(() => {
         const detail = {selection: false} // 선택 영역 감지
         const event = new CustomEvent('customCursorEvent', {detail: detail})
 
         eventManager.addEventListener('selectionchange', 'useCursorManager', () => {
+            setCanMove(false)
             const selection = window.getSelection()
             if (selection?.isCollapsed) { // 없음
                 setIsSelection(false)
@@ -42,14 +44,18 @@ const useCursorManager = () => {
     }, [isSelection]);
 
     useEffect(() => {
-        eventManager.addEventListener('compositionstart', 'useCursorManager', () => {isComposingRef.current = true})
-        eventManager.addEventListener('compositionend', 'useCursorManager', () => {isComposingRef.current = false})
+        eventManager.addEventListener('compositionstart', 'useCursorManager', () => {
+            setIsComposing(true)
+        })
+        eventManager.addEventListener('compositionend', 'useCursorManager', () => {
+            setIsComposing(false)
+        })
 
         return () => {
             eventManager.removeEventListener('compositionstart', 'useCursorManager')
             eventManager.removeEventListener('compositionend', 'useCursorManager')
         }
-    }, []);
+    }, [setIsComposing]);
 
     // ============== 커서 위치 찾기 ==============
     // 노드 순회하면서 위치 찾기 (재귀)
@@ -128,26 +134,13 @@ const useCursorManager = () => {
         }
 
         // 선택영역이 없다면 그리고 글자 조합 중이라면
-        if (selection.isCollapsed || isComposingRef.current) return {startPos: endPos, endPos: endPos}
+        if (selection.isCollapsed || isComposing) return {startPos: endPos, endPos: endPos}
         return { startPos: startPos, endPos: endPos }; // 선택영역이 있다면
-    }, [searchPos]);
+    }, [isComposing, searchPos]);
 
     // ============== 커서 위치 세팅 ==============
-    const [canMove, setCanMove] = useState(true) // 기본 이동 가능 상태
     const [movePosition, setMovePosition] = useState<{startContainer: Node, startOffset: number, endContainer: Node, endOffset: number}|null>(null)
 
-    useEffect(() => {
-        // 방향키는 어쩔까... 일단 남겨놓을까? 거 괜히 불편해질 수 있을거 같은디 흠..
-        const handleBlur = () => setCanMove(false)
-        const handleClick = () => setCanMove(false)
-        document.addEventListener('click', handleClick, true) // 클릭시 이동 방지
-        document.addEventListener('blur', handleBlur, true) // 캡처링 단계에서 모든 blur 이벤트를 감지
-
-        return () => {
-            document.removeEventListener('click', handleClick, true)
-            document.removeEventListener('blur', handleBlur, true)
-        }
-    }, []);
     useLayoutEffect(() => { // 위치 계산하는 동안 클릭등의 이벤트가 들어왔다면 커서 이동 취소하기 그 사이 입력도 막아야 하나 아직 고민임 써보고 불편하면 ㅇㅇ
         if (!movePosition || !canMove) return
         const range = document.createRange();
@@ -203,8 +196,8 @@ const useCursorManager = () => {
 
     // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
     const moveCursor = useCallback((element: HTMLElement | null, startPos: number, endPos: number) => {
-        if (!element) return;
         setCanMove(true)
+        if (!element) return;
 
         const state = {
             node: null, // 찾은 노드
