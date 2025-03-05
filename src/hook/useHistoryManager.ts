@@ -1,11 +1,10 @@
 import isEqual from "fast-deep-equal";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useLayoutEffect, useState} from "react";
 
 // return {trigger:{present: T}(undo, redo 감지), current: 현재 없으면 null, previous: 이전 없으면 null, undo: 뒤, redo: 앞, updateHistory: (T)=>업로드}
-const useHistory = <T,>() => {
+const useHistoryManager = <T,>() => {
     const [index, setIndex] = useState<number>(0)
     const [current, setCurrent] = useState<T|null>(null)
-    const [previous, setPrevious] = useState<T|null>(null) // 이전 값
     const [trigger, setTrigger] = useState<{present: T}|null>(null) // undo, redo 감지 null 은 처음일 때
     const [history, setHistory] = useState<T[]>([])
 
@@ -28,10 +27,8 @@ const useHistory = <T,>() => {
     }, [index])
 
     /* =============== 상태 감지 정의 =============== */
-    useEffect(() => {
-        if (history.length > 0) setCurrent(history[index])
-        if (index === 0) setPrevious(null)
-        else setPrevious(history[index-1])
+    useLayoutEffect(() => {
+        if (history.length > 0 && current !== history[index]) setCurrent(history[index])
     }, [history, index]);
 
     useEffect(() => {
@@ -43,7 +40,7 @@ const useHistory = <T,>() => {
 
     /* =============== 이벤트 관리 =============== */
     const undo = useCallback((undoCount: number=1) => {
-        if (index === 0) return
+        if (index <= 0) return
         setIndex(pre => Math.max(pre-undoCount, 0))
         setIsUndoRedo(true)
     }, [index])
@@ -53,7 +50,7 @@ const useHistory = <T,>() => {
         setIsUndoRedo(true)
     }, [history, index])
 
-    return {trigger, current, previous, undo, redo, updateHistory}
+    return {trigger, current, undo, redo, updateHistory}
 }
 
-export default useHistory
+export default useHistoryManager
