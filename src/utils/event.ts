@@ -11,12 +11,12 @@ export const eventManager = {
         const id = name + type
         const listenersSet = this.listeners.get(type)!;
 
-        // 중복 방지: ID 기반으로 체크, 중복이 있으면 삭제 후 추가
-        const entryToRemove = Array.from(listenersSet).find((entry) => entry.id === id);
-        if (entryToRemove) {
-            listenersSet.delete(entryToRemove); // 여기서도 삭제해야 함
-            document.removeEventListener(type, entryToRemove.callback)
-        }
+        // 중복 방지: ID 기반으로 체크, 중복이 있으면 삭제 후 추가 중복 방지로 인해 의도치 않게 컴포넌트 등이 업데이트 될 때 이전 시점의 setState 와 함수 등을 사용하는 문제가 있는거 같음
+        // const entryToRemove = Array.from(listenersSet).find((entry) => entry.id === id);
+        // if (entryToRemove) {
+        //     listenersSet.delete(entryToRemove); // 여기서도 삭제해야 함
+        //     document.removeEventListener(type, entryToRemove.callback)
+        // }
 
         listenersSet.add({ id, callback: listener });
         document.addEventListener(type, listener);
