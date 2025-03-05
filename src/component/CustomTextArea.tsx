@@ -1,15 +1,5 @@
 import styled from 'styled-components';
-import {
-    ComponentPropsWithoutRef,
-    FocusEvent,
-    forwardRef,
-    KeyboardEvent,
-    useEffect,
-    useImperativeHandle,
-    useMemo,
-    useRef,
-    useState
-} from "react";
+import {FocusEvent, forwardRef, KeyboardEvent, useEffect, useImperativeHandle, useMemo, useRef, useState} from "react";
 import ContentEditable, {ContentEditableEvent} from "react-contenteditable";
 
 const Container = styled(ContentEditable)`
@@ -23,15 +13,16 @@ const Container = styled(ContentEditable)`
     &:focus {
         outline: none;
         border: none;
+        background: rgba(173, 216, 230, 0.1);
     }
 `
 
 export interface CustomTextAreaElement extends HTMLDivElement {
     setInnerHTML(newHTML: string): void;
 }
-type Props = ComponentPropsWithoutRef<'div'> & {html?: {html: string}}
+export type CustomTextAreaProps = {content?: {html: string}}
 
-const CustomTextArea = forwardRef<CustomTextAreaElement, Props>(({html, onChange, onFocus, onBlur, onKeyDown, ...props}, ref) => {
+const CustomTextArea = forwardRef<CustomTextAreaElement, CustomTextAreaProps>(({content}, ref) => {
     const selection = useMemo(() => window.getSelection(), [])
     const [innerHTML, setInnerHTML] = useState<string>('')
     const textAreaRef = useRef<CustomTextAreaElement>(null)
@@ -48,30 +39,12 @@ const CustomTextArea = forwardRef<CustomTextAreaElement, Props>(({html, onChange
     });
 
     useEffect(() => {
-        setInnerHTML(html?.html ?? '')
-    }, [html]);
-
-    useEffect(() => {
-        if (!textAreaRef.current) return
-
-        const observer = new MutationObserver(() => {
-            const event = new CustomEvent('customTextAreaChange', {detail: textAreaRef.current})
-            document.dispatchEvent(event) // html 변경시 이벤트
-        });
-
-        observer.observe(textAreaRef.current, {
-            childList: true,
-            subtree: true,
-            characterData: true,
-        });
-
-        return () => observer.disconnect()
-    }, []);
+        setInnerHTML(content?.html ?? '')
+    }, [content]);
 
     const handler = {
         onChange: (e: ContentEditableEvent) => {
             setInnerHTML(e.target.value)
-            if (onChange) onChange(e)
         },
         onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
             if (e.key === 'Tab') { // Tab -> /t
@@ -92,25 +65,16 @@ const CustomTextArea = forwardRef<CustomTextAreaElement, Props>(({html, onChange
                 selection.collapse(selection.focusNode, selection.focusOffset)
             }
 
-            if (onKeyDown) onKeyDown(e)
         },
-        onFocus: (e: FocusEvent<HTMLDivElement>) => {
-            e.currentTarget.classList.add('focus')
-            if (onFocus) onFocus(e)
-        }
-        ,
-        onBlur: (e: FocusEvent<HTMLDivElement>) => {  // 브라우저 기본 동작 전부 지웠을 때 <br> 만 남는 현상 방지
-            e.currentTarget.classList.remove('focus')
-            // display: block 으로 변경 후 전체 지우면 완전 삭제됨 오히려 좋을지도?
+        onBlur: (e: FocusEvent<HTMLDivElement>) => {  // 브라우저 기본 동작 전부 지웠을 때 <br> 만 남는 현상 방지 data-placeholder 를 쓰기 위함
             if (e.currentTarget.innerHTML === '<br>') e.currentTarget.innerHTML = ''
-            if (onBlur) onBlur(e)
         }
     }
 
     return (
         <Container innerRef={textAreaRef} tabIndex={0} tagName={'div'}
                    suppressContentEditableWarning={true} html={innerHTML}
-                   {...handler} {...props}
+                   {...handler}
         />
     )
 })
