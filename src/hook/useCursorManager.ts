@@ -2,12 +2,17 @@ import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from "react"
 import {eventManager} from "../utils/event.ts";
 import {debounce} from "lodash";
 
-interface  SearchOffsetState {
-    pos: number;
-    index: number;
-    previousPos: number
+export type CursorIndices = {
+    startIndex: number
+    endIndex: number
 }
-interface SearchNodesState {
+
+interface  SearchIndexState {
+    charCount: number;
+    index: number;
+    previousCharCount: number
+}
+interface SearchNodeAndeOffsetState {
     node: Node|null;
     offset: number;
     index: number;
@@ -17,31 +22,30 @@ interface SearchNodesState {
 // return getCursorOffsets(currentEditable: HTMLElement), moveCursor(currentEditable, startPos, endPos)
 const useCursorManager = () => {
     const [canMove, setCanMove] = useState(true) // 기본 이동 가능 상태 커서가 움직였다면
-    const [isSelection, setIsSelection] = useState<boolean>(false) // 선택 영역 감지 0 은 없을 때
     const [isComposing, setIsComposing] = useState<boolean>(false)
 
     useEffect(() => {
-        const detail = {selection: false} // 선택 영역 감지
-        const event = new CustomEvent('customCursorEvent', {detail: detail})
+        // const detail = {selection: false} // 선택 영역 감지
+        // const event = new CustomEvent('customCursorEvent', {detail: detail})
 
         eventManager.addEventListener('selectionchange', 'useCursorManager', () => {
-            setCanMove(false)
-            const selection = window.getSelection()
-            if (selection?.isCollapsed) { // 없음
-                setIsSelection(false)
-                if (isSelection) { // 커서 없어지는 것도 감지 필요할 듯?}
-                    detail.selection = false
-                    document.dispatchEvent(event)
-                }
-            } else { // 선택 영역에 변동이 있을 때
-                setIsSelection(true)
-                detail.selection = true
-                document.dispatchEvent(event) // 선택 영역 변경 시 감지
-            }
+            setCanMove(false) // 이동 전 커서가 움직였다면
+            // const selection = window.getSelection()
+            // if (selection?.isCollapsed) { // 없음
+            //     setIsSelection(false)
+            //     if (isSelection) { // 커서 없어지는 것도 감지 필요할 듯?}
+            //         detail.selection = false
+            //         document.dispatchEvent(event)
+            //     }
+            // } else { // 선택 영역에 변동이 있을 때
+            //     setIsSelection(true)
+            //     detail.selection = true
+            //     document.dispatchEvent(event) // 선택 영역 변경 시 감지
+            // }
         })
 
         return () => eventManager.removeEventListener('selectionchange', 'useCursorManager')
-    }, [isSelection]);
+    }, []);
 
     useEffect(() => {
         eventManager.addEventListener('compositionstart', 'useCursorManager', () => {
@@ -57,9 +61,9 @@ const useCursorManager = () => {
         }
     }, [setIsComposing]);
 
-    // ============== 커서 위치 찾기 ==============
+    // ============== ✅ 커서 위치 찾기 ==============
     // 노드 순회하면서 위치 찾기 (재귀)
-    const searchPos = useCallback((nodes: Node[], state: SearchOffsetState, searchNode: Node, nodeOffset: number, rootCheck: boolean) => {
+    const searchIndex = useCallback((nodes: Node[], state: SearchIndexState, searchNode: Node, nodeOffset: number, rootCheck: boolean) => {
         let isContain = false // 포함하는 노드를 찾았는가
 
         let count = 0
@@ -70,25 +74,25 @@ const useCursorManager = () => {
 
             if (rootCheck && (isContain || child === searchNode)) { // endContainer 조회 시작 위치 찾는 용도
                 state.index = count
-                state.previousPos = state.pos
+                state.previousCharCount = state.charCount
             }
 
             const length = child.textContent?.length ?? 0
             if (child === searchNode) { // 최종 찾음 텍스트 노드 안에 텍스트 노드가 있는경우도 있네...
-                state.pos += nodeOffset
+                state.charCount += nodeOffset
                 break
             } else if (isContain) { // 자식 요소로 가야 함 재귀로 빠짐
-                searchPos([...child.childNodes], state, searchNode, nodeOffset, false)
+                searchIndex([...child.childNodes], state, searchNode, nodeOffset, false)
                 break
             } else { // 찾지 못했다면
-                state.pos += length // 나중에 수정할 수 있음 실제로 어떻게 인식되느냐에 따라
+                state.charCount += length // 나중에 수정할 수 있음 실제로 어떻게 인식되느냐에 따라
             }
             count += 1
         }
     }, [])
 
     // 커서 가져오기
-    const getCursorOffsets = useCallback((element: HTMLElement|null) => {
+    const getCursorIndices = useCallback((element: HTMLElement|null): CursorIndices|null => {
         if (!element) return null;
 
         const selection = window.getSelection();
@@ -99,53 +103,53 @@ const useCursorManager = () => {
 
         const hasElementNode = Array.from(element.childNodes).some(node => node.nodeType === Node.ELEMENT_NODE);
 
-        let startPos = 0, endPos = 0
+        let startIndex = 0, endIndex = 0
 
         // element = startContainer = endContainer, 텍스트 노드뿐
         if (element === startContainer && !hasElementNode) {
-            startPos = startOffset
-            endPos = endOffset
+            startIndex = startOffset
+            endIndex = endOffset
         } else if (element === startContainer && hasElementNode) { // element = startContainer = endContainer, 텍스트 노드가 아닌게 있다면?
             for (let i = 0; i <= endOffset; i++) {
                 const child = element.childNodes[i]
                 const length = child.textContent?.length ?? 0
                 if (i <= startOffset) { // 계산이 맞는지 좀 헷갈리넹 ㅎ
-                    startPos += length
+                    startIndex += length
                 }
-                endPos += length
+                endIndex += length
             }
         } else {
             const state = {
-                pos: 0, // 지금까지 찾은 위치
+                charCount: 0, // 지금까지 찾은 위치
                 index: 0, // endContainer 를 조회하기 시작할 위치 즉, startContainer 찾은 인덱스
-                previousPos: 0 // 여기서 startContainer 를 찾기 전까지의 길이
+                previousCharCount: 0 // 여기서 startContainer 를 찾기 전까지의 길이
             }
 
             // 시작 위치 찾기
             const nodes = [...element.childNodes]
-            searchPos(nodes, state, startContainer, startOffset, true)
-            startPos = state.pos
+            searchIndex(nodes, state, startContainer, startOffset, true)
+            startIndex = state.charCount
 
             // 시작 위치부터 시작!
-            state.pos = state.previousPos
+            state.charCount = state.previousCharCount
             const remainingNodes = nodes.slice(state.index)
-            searchPos(remainingNodes, state, endContainer, endOffset, false)
-            endPos = state.pos
+            searchIndex(remainingNodes, state, endContainer, endOffset, false)
+            endIndex = state.charCount
         }
 
         // 선택영역이 없다면 그리고 글자 조합 중이라면
-        if (selection.isCollapsed || isComposing) return {startPos: endPos, endPos: endPos}
-        return { startPos: startPos, endPos: endPos }; // 선택영역이 있다면
-    }, [isComposing, searchPos]);
+        if (selection.isCollapsed || isComposing) return {startIndex: endIndex, endIndex: endIndex}
+        return { startIndex: startIndex, endIndex: endIndex }; // 선택영역이 있다면
+    }, [isComposing, searchIndex]);
 
-    // ============== 커서 위치 세팅 ==============
-    const [movePosition, setMovePosition] = useState<{startContainer: Node, startOffset: number, endContainer: Node, endOffset: number}|null>(null)
+    // ============== ✅ 커서 위치 세팅 ==============
+    const [moveRange, setMoveRange] = useState<{startContainer: Node, startOffset: number, endContainer: Node, endOffset: number}|null>(null)
 
     useLayoutEffect(() => { // 위치 계산하는 동안 클릭등의 이벤트가 들어왔다면 커서 이동 취소하기 그 사이 입력도 막아야 하나 아직 고민임 써보고 불편하면 ㅇㅇ
-        if (!movePosition || !canMove) return
+        if (!moveRange || !canMove) return
         const range = document.createRange();
         const selection = window.getSelection();
-        const {startContainer, startOffset, endContainer, endOffset} = movePosition
+        const {startContainer, startOffset, endContainer, endOffset} = moveRange
 
         if (startContainer && endContainer) {
             range.setStart(startContainer, startOffset)
@@ -156,10 +160,10 @@ const useCursorManager = () => {
                 selection.addRange(range);
             }
         }
-        setMovePosition(null)
-    }, [movePosition]);
+        setMoveRange(null)
+    }, [moveRange]);
     // 노드를 순회하며 노드 찾기 및 offset 찾기 (재귀)
-    const searchNodes = useCallback((nodes: Node[], state: SearchNodesState, prevLength: number, searchPos: number, rootCheck: boolean) => {
+    const searchNodeAndOffset = useCallback((nodes: Node[], state: SearchNodeAndeOffsetState, prevLength: number, searchPos: number, rootCheck: boolean) => {
         let isContain = false
 
         let totalLength = prevLength
@@ -181,7 +185,7 @@ const useCursorManager = () => {
             }
 
             if (isContain && child.hasChildNodes()) { // 하위 요소 탐색 ㄱ
-                searchNodes([...child.childNodes], state, previousTotalLength, searchPos, false) // 내부 순환은 False
+                searchNodeAndOffset([...child.childNodes], state, previousTotalLength, searchPos, false) // 내부 순환은 False
                 break
             } else if (isContain) { // 하위 요소가 없다면! 찾음!
                 state.node = child
@@ -195,8 +199,8 @@ const useCursorManager = () => {
     }, [])
 
     // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
-    const moveCursor = useCallback((element: HTMLElement | null, startPos: number, endPos: number) => {
-        setCanMove(true)
+    const setCursorRangeByIndices = useCallback((element: HTMLElement | null, {startIndex, endIndex}: CursorIndices) => {
+        setCanMove(true) // 커서 이동 가능 상태 초기화
         if (!element) return;
 
         const state = {
@@ -208,32 +212,32 @@ const useCursorManager = () => {
 
         // startContainer 조회
         const nodes = [...element.childNodes]
-        searchNodes(nodes, state, 0, startPos, true);
+        searchNodeAndOffset(nodes, state, 0, startIndex, true);
         const startContainer = state.node
         const startOffset = state.offset
 
         // endContainer 조회
         const remainingNodes = nodes.slice(state.index)
-        searchNodes(remainingNodes, state, state.previousLength, endPos, false);
+        searchNodeAndOffset(remainingNodes, state, state.previousLength, endIndex, false);
         const endContainer = state.node
         const endOffset = state.offset
 
         if (startContainer && endContainer) {
-            setMovePosition({
+            setMoveRange({
                 startContainer: startContainer,
                 startOffset: startOffset,
                 endContainer: endContainer,
                 endOffset: endOffset
             })
         }
-    }, [searchNodes])
+    }, [searchNodeAndOffset])
     
-    const debounceMoveCursor = useMemo(() => {
-        return debounce(moveCursor, 5)
-    }, [moveCursor])
+    const debounceSetCursorRangeByIndex = useMemo(() => {
+        return debounce(setCursorRangeByIndices, 5)
+    }, [setCursorRangeByIndices])
 
 
-    return {getCursorOffsets, moveCursor: debounceMoveCursor}
+    return {getCursorIndices, setCursorRangeByIndices: debounceSetCursorRangeByIndex}
 }
 
 export default useCursorManager
