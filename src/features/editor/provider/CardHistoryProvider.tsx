@@ -12,7 +12,7 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
     const {cards: originalCards, setCards, cardRefs} = useContext(CardStoreContext)
     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement | null>(null)
     const {trigger, current, undo, redo, updateHistory} = useHistoryManager<CardsData>()
-    const {moveCursor, getCursorOffsets} = useCursorManager()
+    const {setCursorRangeByIndices, getCursorIndices} = useCursorManager()
 
     useEffect(() => {
         setCards([
@@ -26,12 +26,12 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
     // ========= 최신 데이터 가져오는 함수 =========
     const getLatestCursor = useCallback(():Cursor => {
         if (!currentEditElement) throw new Error('CardHistoryProvider: currentEditElement is null')
-        const cursorPos = getCursorOffsets(currentEditElement)
+        const cursorPos = getCursorIndices(currentEditElement)
         if (!cursorPos) throw new Error('CardHistoryProvider: cursorPos is null')
         
-        const {startPos, endPos} = cursorPos
-        return {startPos: startPos, endPos: endPos, element: currentEditElement};
-    }, [currentEditElement, getCursorOffsets])
+        const {startIndex, endIndex} = cursorPos
+        return {startIndex: startIndex, endIndex: endIndex, element: currentEditElement};
+    }, [currentEditElement, getCursorIndices])
     const getLatestScroll = useCallback((): Scroll => {
         return {x: window.scrollX, y: window.scrollY};
     }, [])
@@ -135,8 +135,8 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
         if (isEqual(latestCards, current.cards)) { // 랜더링이 없을 것이므로 커서 등 별도 처리
             setCanUpdatePosition(false)
             if (!current?.cursor) return
-            const {startPos, endPos, element: node} = current.cursor
-            moveCursor(node, startPos, endPos)
+            const {startIndex, endIndex, element: node} = current.cursor
+            setCursorRangeByIndices(node, {startIndex, endIndex})
         }
     }, [trigger]);
 
@@ -145,12 +145,12 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
         eventManager.addEventListener('rendered', 'RichEditor', () => {
             setCanUpdatePosition(false)
             if (!canUpdatePosition || !current?.cursor) return
-            const {startPos, endPos, element: node} = current.cursor
-            moveCursor(node, startPos, endPos)
+            const {startIndex, endIndex, element: node} = current.cursor
+            setCursorRangeByIndices(node, {startIndex, endIndex})
         })
 
         return () => eventManager.removeEventListener('rendered', 'RichEditor')
-    }, [moveCursor, canUpdatePosition, current]);
+    }, [setCursorRangeByIndices, canUpdatePosition, current]);
 
     const value = useMemo(() => ({updateHistory: updateHistoryOverride, setCurrentEditElement, isUndoRedo}), [isUndoRedo, updateHistoryOverride])
     return (<CardHistoryContext.Provider value={value}>{children}</CardHistoryContext.Provider>)

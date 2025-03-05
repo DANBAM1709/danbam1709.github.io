@@ -1,5 +1,6 @@
 import {createContext, Dispatch, SetStateAction} from "react";
 import {CardProps} from "../CardSelector.tsx";
+import {CursorIndices} from "../../../hook/useCursorManager.ts";
 
 export interface UpdateHistoryProps {
     cards: CardProps[],
@@ -12,11 +13,7 @@ interface CardHistoryContextType {
     updateHistory: (data?: UpdateHistoryProps) => void
     isUndoRedo: boolean
 }
-export type Cursor = {
-    startPos: number
-    endPos: number
-    element: HTMLElement
-} | null
+export type Cursor = CursorIndices & {element: HTMLElement|null} | null
 export type Scroll = {
     x: number
     y: number
