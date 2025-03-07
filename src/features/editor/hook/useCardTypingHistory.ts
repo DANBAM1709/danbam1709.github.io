@@ -1,6 +1,6 @@
 // 커서 이동 인지 키
 import {KeyboardEvent, FormEvent, CompositionEvent, useContext, useEffect, useState} from "react";
-import CardHistoryContext from "../provider/CardHistoryContext.ts";
+import ContentHistoryContext from "../provider/ContentHistoryContext.ts";
 import {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
 
 const cursorMoveKeys = [
@@ -15,7 +15,7 @@ const cursorMoveKeys = [
 ];
 
 const useCardTypingHistory = (target: CustomTextAreaElement|null) => {
-    const {isUndoRedo, updateHistory, setCurrentEditElement} = useContext(CardHistoryContext)
+    const {isUndoRedo, updateHistory, setCurrentEditElement} = useContext(ContentHistoryContext)
 
     // ================= history 관리 =================
     const [prevUnicode, setPrevUnicode] = useState<number>(-1) // 한글 삭제 감지를 위함
@@ -30,7 +30,7 @@ const useCardTypingHistory = (target: CustomTextAreaElement|null) => {
         updateHistory() // 입력, 삭제 모드 전환시 데이터 업데이트
     }, [isEraseMode]);
 
-    const handleTypingHistory = {
+    return {
         onFocus: () => {
             setIsFocus(true)
             setCurrentEditElement(target)
@@ -89,7 +89,6 @@ const useCardTypingHistory = (target: CustomTextAreaElement|null) => {
         onCompositionStart: () => { // input 전 이벤트 초성 작성
             setIsEraseMode(false) // 초성이므로 무조건 입력
             setPrevUnicode(-1) // 무조건 -1 일 수 밖에...
-            console.log('에엥?')
         },
         onCompositionUpdate: (e: CompositionEvent<HTMLDivElement>) => { // 화면 랜더링 전이라는 거 같음
             const charCode = e.data.charCodeAt(0)
@@ -111,8 +110,6 @@ const useCardTypingHistory = (target: CustomTextAreaElement|null) => {
             }
         },
     }
-
-    return handleTypingHistory
 }
 
 export default useCardTypingHistory
