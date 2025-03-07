@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from "react";
-import {eventManager} from "../utils/event.ts";
 import {debounce} from "lodash";
+import {eventManager} from "../utils/eventManager.ts";
 
 export type CursorIndices = {
     startIndex: number
