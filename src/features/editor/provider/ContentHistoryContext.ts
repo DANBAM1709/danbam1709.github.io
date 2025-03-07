@@ -1,14 +1,14 @@
 import {createContext, Dispatch, SetStateAction} from "react";
-import {CardProps} from "../CardSelector.tsx";
 import {CursorIndices} from "../../../hook/useCursorManager.ts";
+import {ContentProps} from "../ContentSelector.tsx";
 
 export interface UpdateHistoryProps {
-    cards: CardProps[],
+    contents: ContentProps[],
     cursor?: Cursor,
     scroll?: Scroll
 }
 
-interface CardHistoryContextType {
+interface ContentHistoryContextType {
     setCurrentEditElement: Dispatch<SetStateAction<HTMLElement|null>>
     updateHistory: (data?: UpdateHistoryProps) => void
     isUndoRedo: boolean
@@ -19,16 +19,16 @@ export type Scroll = {
     y: number
 }
 
-export interface CardsData {
-    cards: CardProps[],
+export interface ContentsData {
+    contents: ContentProps[],
     cursor: Cursor
     scroll: Scroll
 }
 
-const CardHistoryContext = createContext<CardHistoryContextType>({
+const ContentHistoryContext = createContext<ContentHistoryContextType>({
     setCurrentEditElement: () => {},
     updateHistory: () => {},
     isUndoRedo: false
 })
 
-export default CardHistoryContext
+export default ContentHistoryContext
