@@ -1,23 +1,22 @@
-import styled from "styled-components";
-import CustomTextArea, {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
-import {forwardRef, KeyboardEvent, useImperativeHandle, useMemo, useRef} from "react";
-import {InheritCardProps} from "../CardSelector.tsx";
-import {CardElement} from "../provider/CardStoreContext.ts";
-import CardTextArea from "../CardTextArea.tsx";
-import GhostContainer from "../../../base-style/GhostContainer.tsx";
+import {forwardRef, useImperativeHandle, useRef} from "react";
+import {InheritContentProps} from "../ContentSelector.tsx";
+import RichTextArea from "../widget/RichTextArea.tsx";
+import {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
+import {ContentElement} from "../provider/ContentStoreContext.ts";
 
-const BasicCard = forwardRef<CardElement, InheritCardProps>(({data}, ref) => {
+const BasicTextBlock = forwardRef<ContentElement, InheritContentProps>(({data}, ref) => {
     const targetRef = useRef<CustomTextAreaElement|null>(null)
 
     useImperativeHandle(ref, () => { // ref 로 접근 가능한 데이터 정의
         if (targetRef.current) {
             return Object.assign(targetRef.current, {
                 getData: () => ({html: targetRef.current!.innerHTML})
-            }) as CardElement
+            }) as ContentElement
         }
-        throw new Error('BasicCard ref error!')
+        throw new Error('BasicTextBlock ref error!')
     }, []);
-    return (<GhostContainer><CardTextArea content={data} ref={targetRef} /></GhostContainer>)
+
+    return <RichTextArea content={data} ref={targetRef} />
 })
 //
 // const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data}, ref) => {
@@ -81,4 +80,4 @@ const BasicCard = forwardRef<CardElement, InheritCardProps>(({data}, ref) => {
 //
 //     return (<BasicTextArea ref={targetRef} {...handleTextArea} html={data} />)})
 
-export default BasicCard
+export default BasicTextBlock
