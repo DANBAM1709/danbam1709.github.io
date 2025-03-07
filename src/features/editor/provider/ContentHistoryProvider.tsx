@@ -1,63 +1,54 @@
-import CardHistoryContext, {CardsData, Cursor, Scroll, UpdateHistoryProps} from "./CardHistoryContext.ts";
 import {ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
+import ContentStoreContext from "./ContentStoreContext.ts";
 import useHistoryManager from "../../../hook/useHistoryManager.ts";
-import {eventManager} from "../../../utils/event.ts";
+import {ContentProps} from "../ContentSelector.tsx";
+import useCursorManager from "../../../hook/useCursorManager.ts";
+import ContentHistoryContext, {ContentsData, Cursor, Scroll, UpdateHistoryProps} from "./ContentHistoryContext.ts";
 import isEqual from "fast-deep-equal";
 import {throttle} from "lodash";
-import CardStoreContext from "./CardStoreContext.ts";
-import useCursorManager from "../../../hook/useCursorManager.ts";
-import {CardProps} from "../CardSelector.tsx";
+import {eventManager} from "../../../utils/eventManager.ts";
 
-const CardHistoryProvider = ({children}: {children: ReactNode}) => {
-    const {cards: originalCards, setCards, cardRefs} = useContext(CardStoreContext)
+const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
+    const {contents: originalContents, setContents, contentRefs} = useContext(ContentStoreContext)
     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement | null>(null)
-    const {trigger, current, undo, redo, updateHistory} = useHistoryManager<CardsData>()
+    const {trigger, current, undo, redo, updateHistory} = useHistoryManager<ContentsData>()
     const {setCursorRangeByIndices, getCursorIndices} = useCursorManager()
-
-    useEffect(() => {
-        setCards([
-            {data: {html: '1'}, id: crypto.randomUUID(), mode: 'default'},
-            {data: {html: '2'}, id: crypto.randomUUID(), mode: 'default'},
-            {data: {html: '3'}, id: crypto.randomUUID(), mode: 'default'},
-            {data: {html: '4'}, id: crypto.randomUUID(), mode: 'default'},
-        ])
-    }, []);
 
     // ========= 최신 데이터 가져오는 함수 =========
     const getLatestCursor = useCallback(():Cursor => {
-        if (!currentEditElement) throw new Error('CardHistoryProvider: currentEditElement is null')
+        if (!currentEditElement) throw new Error('ContentHistoryProvider: currentEditElement is null')
         const cursorPos = getCursorIndices(currentEditElement)
-        if (!cursorPos) throw new Error('CardHistoryProvider: cursorPos is null')
-        
+        if (!cursorPos) throw new Error('ContentHistoryProvider: cursorPos is null')
+
         const {startIndex, endIndex} = cursorPos
         return {startIndex: startIndex, endIndex: endIndex, element: currentEditElement};
     }, [currentEditElement, getCursorIndices])
     const getLatestScroll = useCallback((): Scroll => {
         return {x: window.scrollX, y: window.scrollY};
     }, [])
-    const getLatestCards = useCallback(():CardProps[] => { // 최신 카드 데이터
-        if (!originalCards) throw new Error('CardHistoryProvider: A problem occurred while fetching the latest cards')
-        return (originalCards.map((card) => ({
-            data: cardRefs.current[card.id]?.getData() ?? card.data,
-            id: card.id,
-            mode: card.mode,
+    const getLatestContents = useCallback(():ContentProps[] => { // 최신 카드 데이터
+        if (!originalContents) throw new Error('ContentHistoryProvider: A problem occurred while fetching the latest cards')
+        return (originalContents.map((content) => ({
+            data: contentRefs.current[content.id]?.getData() ?? content.data,
+            id: content.id,
+            mode: content.mode,
         })));
-    }, [cardRefs, originalCards]);
+    }, [originalContents, contentRefs]);
 
     // ========= 업데이트 함수 정의 =========
     const updateHistoryOverride = useCallback((param?: UpdateHistoryProps) => {
         if (!currentEditElement) return
-        const {cards, cursor=getLatestCursor(), scroll=getLatestScroll()} = param ?? {cards: getLatestCards(), cursor: getLatestCursor(), scroll: getLatestScroll()}
+        const {contents, cursor=getLatestCursor(), scroll=getLatestScroll()} = param ?? {contents: getLatestContents(), cursor: getLatestCursor(), scroll: getLatestScroll()}
         let updateData = {
-            cards: cards,
+            contents: contents,
             cursor: cursor,
             scroll: scroll
         }
-        if (current && isEqual(cards, current?.cards) && isEqual(cursor, current?.cursor)) {
+        if (current && isEqual(contents, current?.contents) && isEqual(cursor, current?.cursor)) {
             updateData = current
         }
         updateHistory(updateData)
-    }, [current, currentEditElement, getLatestCards, getLatestCursor, getLatestScroll, updateHistory])
+    }, [current, currentEditElement, getLatestContents, getLatestCursor, getLatestScroll, updateHistory])
 
     // ========= undo | redo 이벤트 정의 =========
     const [isFirstUndo, setIsFirstUndo] = useState(true)
@@ -74,7 +65,7 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
         setIsUndoRecorded(false)
     }, [isUndoRecorded]);
     useEffect(() => {
-        eventManager.addEventListener('keydown', 'CardHistoryProvider', (evt: Event) => {
+        eventManager.addEventListener('keydown', 'ContentHistoryProvider', (evt: Event) => {
             const e = evt as KeyboardEvent
             const con = {
                 isUndo: e.ctrlKey && e.key.toLowerCase() === 'z',
@@ -84,20 +75,20 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
                 e.preventDefault() // 브라우저 기본 뒤로 가기 방지
                 setIsFirstUndo(false)
                 let isEqualCard = true // 카드 데이터가 같은지 검증, 같지 않다면 마지막 동작은 작성 중이었을 것
-                let latestCard = undefined
+                let latestContents = undefined
 
                 if (isFirstUndo) { // 첫번째 undo 라면 데이터 검증
-                    latestCard = getLatestCards()
-                    isEqualCard = isEqual(latestCard, current?.cards)
+                    latestContents = getLatestContents()
+                    isEqualCard = isEqual(latestContents, current?.contents)
                 }
                 if (!isEqualCard) { // 첫 undo 시에만 검증
                     const cursor = getLatestCursor()
 
                     // 혹시라도 작성 중이 아니라면.. 커서 에러 발생 CardTextArea 를 확인할 것!
-                    if (!cursor) throw new Error('CardHistoryProvider: Undo operation failed. missing cursor during history update.')
-                    if (!latestCard) throw new Error('CardHistoryProvider: Undo operation failed. missing cards during history update.')
+                    if (!cursor) throw new Error('ContentHistoryProvider: Undo operation failed. missing cursor during history update.')
+                    if (!latestContents) throw new Error('ContentHistoryProvider: Undo operation failed. missing cards during history update.')
 
-                    updateHistoryOverride({cards: latestCard, cursor: cursor})
+                    updateHistoryOverride({contents: latestContents, cursor: cursor})
                     setIsUndoRecorded(true) // 인덱스가 변할 때까지 기다릴 필요가 있어서
                     return;
                 }
@@ -119,8 +110,8 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
             }
         })
 
-        return () => eventManager.removeEventListener('keydown', 'CardHistoryProvider')
-    }, [current, getLatestCards, getLatestCursor, getLatestScroll, isFirstUndo, redo, throttledRedo, throttledUndo, undo, updateHistory, updateHistoryOverride]);
+        return () => eventManager.removeEventListener('keydown', 'ContentHistoryProvider')
+    }, [current, getLatestContents, getLatestCursor, getLatestScroll, isFirstUndo, redo, throttledRedo, throttledUndo, undo, updateHistory, updateHistoryOverride]);
 
 
     // ========= undo | redo 발생하면 =========
@@ -129,10 +120,10 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
         if (!current) return
 
         setCanUpdatePosition(true)
-        const deepCopiedObject = structuredClone(current.cards);
-        setCards(deepCopiedObject) // 아앗 이전과 기록이 완전히 동일하다면..
-        const latestCards = getLatestCards()
-        if (isEqual(latestCards, current.cards)) { // 랜더링이 없을 것이므로 커서 등 별도 처리
+        const deepCopiedObject = structuredClone(current.contents);
+        setContents(deepCopiedObject) // 아앗 이전과 기록이 완전히 동일하다면..
+        const latestCards = getLatestContents()
+        if (isEqual(latestCards, current.contents)) { // 랜더링이 없을 것이므로 커서 등 별도 처리
             setCanUpdatePosition(false)
             if (!current?.cursor) return
             const {startIndex, endIndex, element: node} = current.cursor
@@ -153,7 +144,7 @@ const CardHistoryProvider = ({children}: {children: ReactNode}) => {
     }, [setCursorRangeByIndices, canUpdatePosition, current]);
 
     const value = useMemo(() => ({updateHistory: updateHistoryOverride, setCurrentEditElement, isUndoRedo}), [isUndoRedo, updateHistoryOverride])
-    return (<CardHistoryContext.Provider value={value}>{children}</CardHistoryContext.Provider>)
+    return (<ContentHistoryContext.Provider value={value}>{children}</ContentHistoryContext.Provider>)
 }
 
-export default CardHistoryProvider
+export default ContentHistoryProvider
