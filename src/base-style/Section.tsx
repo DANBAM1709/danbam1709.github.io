@@ -1,13 +1,11 @@
 import styled from "styled-components";
 
 const Section = styled.div.attrs({ tabIndex: 0 })`
-    position: relative;
-    display: flex;
-    align-items: center;
+    min-width: 100%;
+    display: inline-flex;
     flex-direction: column;
-    height: fit-content;
+    align-items: center;
     box-sizing: border-box;
-    width: 100%;
 `
 
 export default Section
