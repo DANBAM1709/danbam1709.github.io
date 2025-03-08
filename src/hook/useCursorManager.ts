@@ -25,23 +25,8 @@ const useCursorManager = () => {
     const [isComposing, setIsComposing] = useState<boolean>(false)
 
     useEffect(() => {
-        // const detail = {selection: false} // 선택 영역 감지
-        // const event = new CustomEvent('customCursorEvent', {detail: detail})
-
         eventManager.addEventListener('selectionchange', 'useCursorManager', () => {
             setCanMove(false) // 이동 전 커서가 움직였다면
-            // const selection = window.getSelection()
-            // if (selection?.isCollapsed) { // 없음
-            //     setIsSelection(false)
-            //     if (isSelection) { // 커서 없어지는 것도 감지 필요할 듯?}
-            //         detail.selection = false
-            //         document.dispatchEvent(event)
-            //     }
-            // } else { // 선택 영역에 변동이 있을 때
-            //     setIsSelection(true)
-            //     detail.selection = true
-            //     document.dispatchEvent(event) // 선택 영역 변경 시 감지
-            // }
         })
 
         return () => eventManager.removeEventListener('selectionchange', 'useCursorManager')
@@ -90,8 +75,7 @@ const useCursorManager = () => {
             count += 1
         }
     }, [])
-
-    // 커서 가져오기
+    // 커서 가져오기 element: 현재 커서가 있는 element <br/>return 글자 수 기준 {startIndex: number, endIndex: number}
     const getCursorIndices = useCallback((element: HTMLElement|null): CursorIndices|null => {
         if (!element) return null;
 
@@ -197,8 +181,8 @@ const useCursorManager = () => {
         }
 
     }, [])
-
-    // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
+    
+    // element: 커서 위치가 저장된 요소, startIndex: 시작 인덱스 위치, endIndex: 끝 인덱스 위치
     const setCursorRangeByIndices = useCallback((element: HTMLElement | null, {startIndex, endIndex}: CursorIndices) => {
         setCanMove(true) // 커서 이동 가능 상태 초기화
         if (!element) return;
@@ -231,7 +215,8 @@ const useCursorManager = () => {
             })
         }
     }, [searchNodeAndOffset])
-    
+
+    // 속도 조절 일정 시간 동안 들어온 것 무시, 최종 호출 수행
     const debounceSetCursorRangeByIndex = useMemo(() => {
         return debounce(setCursorRangeByIndices, 5)
     }, [setCursorRangeByIndices])
