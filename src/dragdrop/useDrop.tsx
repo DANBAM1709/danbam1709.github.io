@@ -37,9 +37,7 @@ const useDrop = ({dropTarget, onDragStartBefore, onDragStart, onDragOver, onDrag
 
     // 클릭 상태가 false 면 drag 상태도 false로 전환
     useEffect(() => {
-        if (!isClick) {
-            setIsDrag(false)
-        }
+        if (!isClick) setIsDrag(false)
     }, [isClick]);
     // 드래그가 끝나면 시작 좌표 초기화 및 click 상태 해제
     useEffect(() => {
