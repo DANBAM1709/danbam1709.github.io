@@ -1,8 +1,8 @@
 import styled from "styled-components";
-import CustomTextArea, {CustomTextAreaElement} from "../../component/CustomTextArea.tsx";
+import CustomTextArea, {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
 import {forwardRef, useImperativeHandle, useRef} from "react";
-import GhostContainer from "../../base-style/GhostContainer.tsx";
-import useCardTypingHistory from "./hook/useCardTypingHistory.ts";
+import GhostContainer from "../../../base-style/GhostContainer.tsx";
+import useCardTypingHistory from "../hook/useCardTypingHistory.ts";
 
 const TextArea = styled(CustomTextArea)``
 
@@ -10,7 +10,7 @@ interface CardTextAreaProps {
     content: {html: string}
 }
 
-const CardTextArea = forwardRef<CustomTextAreaElement, CardTextAreaProps>(({content}, ref) => {
+const RichTextWidget = forwardRef<CustomTextAreaElement, CardTextAreaProps>(({content}, ref) => {
     const targetRef = useRef<CustomTextAreaElement>(null)
     const handleTypingHistory = useCardTypingHistory(targetRef.current)
 
@@ -26,4 +26,4 @@ const CardTextArea = forwardRef<CustomTextAreaElement, CardTextAreaProps>(({cont
     </GhostContainer>
 })
 
-export default CardTextArea
+export default RichTextWidget
