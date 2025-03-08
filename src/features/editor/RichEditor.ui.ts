@@ -2,28 +2,36 @@ import styled from "styled-components";
 import SelectBtn from "../../select-option/SelectBtn.tsx";
 import Options from "../../select-option/Options.tsx";
 import Option from "../../select-option/Option.tsx";
+import MainContainer from "../../base-style/MainContainer.tsx";
+import Section from "../../base-style/Section.tsx";
 
-const DraggableCard = styled.div.attrs({ tabIndex: 0 })`
-    width: fit-content;
+export const DraggableCard = styled.div.attrs({ tabIndex: 0 })`
     height: fit-content;
-    display: flex;
+    display: inline-flex;
+    margin: 0 40px; // 좌우 여백
 
+    // DragButton.width + ActionTool.marginRight 중앙 위치 맞추기 위함
+    &.editor-title {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
     &:not(.editor-title) { // 제목이 아닌 경우
-        margin-right: 26px; // DragButton.width + ActionTool.marginRight 중앙 위치 맞추기 위함 스타일 수정할 수도 있을거 같은데..
+        padding-right: 24px;
     }
 `
-const Card = styled.div.attrs({ tabIndex: 0 })`
+export const Card = styled.div.attrs({ tabIndex: 0 })`
     background: white;
-    width: 100%;
     height: fit-content;
+    box-sizing: border-box;
 `
-const ActionTool = styled.div`
+export const ActionTool = styled.div`
     display: flex;
     height: calc(1em * var(--line-height));
     align-items: center;
-    margin-right: 10px; // margin 조절 시 ActionTool margin-right 와 DragButton 의 width 를 살펴봐야 함
+    box-sizing: border-box;
+    padding-right: 10px; // margin 조절 시 ActionTool margin-right 와 DragButton 의 width 를 살펴봐야 함
 `
-const DragButton = styled(SelectBtn)`
+export const DragButton = styled(SelectBtn)`
     border-radius: 0.15em;
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border: 1px solid rgba(0, 0, 0, 0.08);
@@ -43,7 +51,7 @@ const DragButton = styled(SelectBtn)`
         height: 13px;
     }
 `
-const PlusButton = styled(SelectBtn)`
+export const PlusButton = styled(SelectBtn)`
     position: relative;
     z-index: 10;
     border-radius: 50%;
@@ -69,14 +77,14 @@ const PlusButton = styled(SelectBtn)`
     }
 `
 
-const CardDivider = styled.div`
+export const CardDivider = styled.div`
     position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 0.4em 0; // 수정 전 CardDropZone 확인 필수
 `
-const CardDividerLine = styled.div`
+export const CardDividerLine = styled.div`
     position: absolute;
     top: 50%;
     background: #90CAF9;
@@ -86,18 +94,18 @@ const CardDividerLine = styled.div`
     border-radius: 0.005em;
 `
 
-const TopDropZone = styled.div`
+export const TopDropZone = styled.div`
     position: absolute !important;
     top: 0; left: 0; right: 0; bottom: 50%;
     z-index: -1;
 `
-const BottomDropZone = styled.div`
+export const BottomDropZone = styled.div`
     position: absolute !important;
     top: 50%; left: 0; right: 0; bottom: 0;
     z-index: -1;
 `
 
-const DragOptions = styled(Options)`
+export const DragOptions = styled(Options)`
     display: flex;
     flex-direction: column;
     background: white;
@@ -108,7 +116,7 @@ const DragOptions = styled(Options)`
     border-radius: 10px;
     top: 20px;
 `
-const DragOption = styled(Option)`
+export const DragOption = styled(Option)`
     & > * {
         width: 20px;
         height: 20px;
@@ -116,4 +124,17 @@ const DragOption = styled(Option)`
     
 `
 
-export {DragOptions, DragOption, DraggableCard, TopDropZone, BottomDropZone, CardDividerLine, CardDivider, Card, ActionTool, DragButton, PlusButton}
+export const RichEditorContainer = styled(MainContainer)`
+    font-size: 20px;
+    padding-top: 80px;
+    box-sizing: border-box;
+
+    ${Card}, ${CardDivider} {
+        min-width: var(--content-width);
+        width: var(--content-width);
+    }
+    
+    ${Section}[data-lastblock='true'] ${BottomDropZone}{
+        padding-bottom: 5em;
+    }
+`
