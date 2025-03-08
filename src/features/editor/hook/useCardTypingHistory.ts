@@ -1,6 +1,6 @@
 // 커서 이동 인지 키
 import {KeyboardEvent, FormEvent, CompositionEvent, useContext, useEffect, useState} from "react";
-import ContentHistoryContext from "../provider/ContentHistoryContext.ts";
+import ContentHistoryContext from "../context/ContentHistoryContext.ts";
 import {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
 
 const cursorMoveKeys = [
@@ -40,7 +40,7 @@ const useCardTypingHistory = (target: CustomTextAreaElement|null) => {
             setIsEraseMode(null)
             setCurrentEditElement(null) // blur 가 먼저일 거임
             if (isEraseMode === null || isUndoRedo) return
-            updateHistory() // 타이핑 마지막 위치이고 isUndoRedo 가 아니라면 저장
+            updateHistory({contentUpdate: true}) // 타이핑 마지막 위치이고 isUndoRedo 가 아니라면 저장
         },
         onMouseDown: () => {
             setIsEraseMode(null)
