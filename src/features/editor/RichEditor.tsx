@@ -1,8 +1,4 @@
-import styled from "styled-components";
-import MainContainer from "../../base-style/MainContainer.tsx";
 import Section from "../../base-style/Section.tsx";
-import Plus from '../../assets/svg/plus.svg?react'
-import Grab from '../../assets/svg/grab.svg?react'
 import {
     ActionTool,
     BottomDropZone,
@@ -13,124 +9,32 @@ import {
     DraggableCard,
     DragOption,
     PlusButton,
+    RichEditorContainer,
     TopDropZone
 } from "./RichEditor.ui.ts";
-import {FocusEvent, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState} from "react";
-import TooltipWithComponent from "../../component/TooltipWithComponent.tsx";
-import CardSelector, {CardProps} from "./CardSelector.tsx";
+import {useCallback, useContext} from "react";
 import Draggable from "../../dragdrop/Draggable.tsx";
-import DragDropProvider from "../../dragdrop/DragDropProvider.tsx";
-import DropZone from "../../dragdrop/DropZone.tsx";
 import SelectProvider from "../../select-option/SelectProvider.tsx";
 import Options from "../../select-option/Options.tsx";
 import Comment from '../../assets/svg/comment.svg?react'
 import ColorPicker from '../../assets/svg/color-picker.svg?react'
-import Trash from '../../assets/svg/trash.svg?react'
 import Copy from '../../assets/svg/copy.svg?react'
+import Plus from '../../assets/svg/plus.svg?react'
+import Grab from '../../assets/svg/grab.svg?react'
 import Swap from '../../assets/svg/swap.svg?react'
-import CardStoreContext from "./provider/CardStoreContext.ts";
+import ContentStoreContext from "./context/ContentStoreContext.ts";
+import ContentSelector, {ContentProps} from "./ContentSelector.tsx";
+import DragDropProvider from "../../dragdrop/DragDropProvider.tsx";
+import TooltipWithComponent from "../../component/TooltipWithComponent.tsx";
+import DropZone from "../../dragdrop/DropZone.tsx";
+import useContentDragDrop from "./hook/useContentDragDrop.ts";
+import ContentHistoryContext from "./context/ContentHistoryContext.ts";
 
-const Container = styled(MainContainer)`
-    font-size: 20px;
-    padding-top: 80px;
-
-    ${Card}, ${CardDivider} {
-        min-width: var(--content-width);
-        width: var(--content-width);
-    }
-
-    ${Section}[data-lastblock='true'] ${BottomDropZone}{
-        padding-bottom: 5em;
-    }
-`
-//
-// // 자식 컴포넌트에서 노출할 ref 타입
-// export interface GetDataHTMLElement extends HTMLElement {
-//     getData: () => CardProps['data']
-// }
-// type Cursor = { // 마커로 표시
-//     startPos: number
-//     endPos: number
-//     element: HTMLElement|null
-// } | null
-// interface Scroll {
-//     x: number
-//     y: number
-// }
-// export type Data = {
-//     cards: CardProps[]
-//     cursor: Cursor
-//     scroll: Scroll
-// } | null
 //
 // const RichEditor = () => {
-//     const cardRefs = useRef<{ [id: string]: GetDataHTMLElement | null }>({}); // 객체를 card.id로 관리
-//     const [cards, setCards] = useState<CardProps[]>([
-//         {data: {html: '제목이옹'}, id: crypto.randomUUID(), mode: 'title'},
-//         {data: {html: '1'}, id: crypto.randomUUID(), mode: 'default'},
-//         {data: {html: '2'}, id: crypto.randomUUID(), mode: 'default'},
-//         {data: {html: '3'}, id: crypto.randomUUID(), mode: 'default'},
-//         {data: {html: '4'}, id: crypto.randomUUID(), mode: 'default'},
-//     ]) // 출력할 데이터
+
 //     const {editorDragBtn, editorPlusBtn} = useTooltip()
 //     // const {state: {isTooltip}} = useRichEditorContext()
-//
-//     // useEffect(() => { // 리랜더링 감지 이벤트 생각해보니 이거 RichEditor 에 직접 붙어있어야 하는게 아닌가?
-//     //     if (!targetRef.current) return
-//     //
-//     //     const observer = new MutationObserver(() => {
-//     //         const event = new CustomEvent('rendered', {detail: targetRef.current})
-//     //         document.dispatchEvent(event) // html 변경시 이벤트
-//     //     });
-//     //
-//     //     observer.observe(targetRef.current, {
-//     //         childList: true,
-//     //         subtree: true,
-//     //         characterData: true,
-//     //     });
-//     //
-//     //     return () => observer.disconnect()
-//     // }, []);
-//
-//     // ------ 최신 카드 데이터 가져오는 함수 ------
-//     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement|null>(null) // 현재 편집 중인 요소
-//     const {getCursorOffsets} = useCursorManager()
-//     const getLatestScroll = useCallback(() => ({x: window.scrollX, y: window.scrollY}), [])
-//     const getLatestCards = useCallback(() => { // 최신 카드 데이터
-//         if (!cards) return cards
-//         return (cards.map((card) => ({
-//             data: cardRefs.current[card.id]?.getData() ?? card.data,
-//             id: card.id,
-//             mode: card.mode,
-//         })))
-//     }, [cards]);
-//     const [currentRecord, setCurrentRecord] = useState<Data|null>(null) // present
-//     const getLatestData = useCallback((params?: {getCards?: () => CardProps[]}): Data => {
-//         const { getCards = getLatestCards } = params || {}; // 선택적으로 인자 전달 가능
-//         const latestCards = getCards()
-//
-//         const cursorPos = getCursorOffsets(currentEditElement)
-//         let cursor = null
-//
-//         if (cursorPos) {
-//             const {startPos, endPos} = cursorPos
-//             cursor = {startPos: startPos, endPos: endPos, element: currentEditElement}
-//         }
-//
-//         return {
-//             cards: latestCards,
-//             cursor: cursor,
-//             scroll: getLatestScroll()
-//         }
-//     }, [currentEditElement, getCursorOffsets, getLatestCards, getLatestScroll])
-//
-//     // ------ history 관리 ------
-//     const {handleHistory, undo, redo, updateHistory, current} = useRichEditorHistory(setCards, getLatestData, getLatestCards)
-//     const updateHistoryWithLatestData = useCallback((updateCards?: CardProps[]) =>{
-//         const latestCards = getLatestData({getCards: () => updateCards ?? getLatestCards()})
-//         setCards(latestCards?.cards ?? [])
-//         updateHistory(latestCards)
-//     }, [getLatestCards, getLatestData, updateHistory])
 //
 //     // ------ 드래그 & 드랍 ------
 //     const {handleDrop, fromIndex, toIndex} = useCardDragDrop(cards, cardRefs.current, updateHistoryWithLatestData)
@@ -264,37 +168,24 @@ const Container = styled(MainContainer)`
 
 
 const RichEditor = () => {
-    const {cards, cardRefs} = useContext(CardStoreContext)
-    const containerRef = useRef<HTMLDivElement|null>(null)
+    const {contents, contentRefs} = useContext(ContentStoreContext)
+    const {updateHistory} = useContext(ContentHistoryContext)
 
-    useEffect(() => { // 리랜더링 감지 이벤트 생각해보니 이거 RichEditor 에 직접 붙어있어야 하는게 아닌가?
-        if (!containerRef.current) return
+    const updateHistoryWithLatestData = useCallback((updateContents: ContentProps[]) =>{
+        updateHistory({contents: updateContents, contentUpdate: true})
+    }, [updateHistory])
 
-        const observer = new MutationObserver(() => {
-            const event = new CustomEvent('rendered')
-            document.dispatchEvent(event) // html 변경시 이벤트
-        });
+    const {handleDrop, fromIndex, toIndex} = useContentDragDrop(contents, contentRefs.current, updateHistoryWithLatestData)
 
-        observer.observe(containerRef.current, {
-            childList: true,
-            subtree: true,
-            characterData: true,
-        });
-
-        return () => observer.disconnect()
-    }, []);
-
-
-        // return (<DragDropProvider useDrop={handleDrop}><Container>
-    return (<Container ref={containerRef}>
-        {cards.map((card, index) => {
-            return (<Section key={card.id} data-lastblock={cards.length === index+1? 'true': undefined}>
+    return (<DragDropProvider useDrop={handleDrop}><RichEditorContainer>
+        {contents.map((content, index) => {
+            return (<Section key={content.id} data-lastblock={contents.length === index+1? 'true': undefined}>
                 <DraggableCard className={index===0? 'editor-title':''}>
                     {/* 제목이면 드래그 버튼 제외 */}
                     {index !== 0? <ActionTool>
                         <Draggable data-target-index={index}><SelectProvider>
                                 {/* DragBtn = SelectBtn */}
-                                {/*<TooltipWithComponent Component={<DragButton><Grab /></DragButton>} summary={editorDragBtn} />*/}
+                                <TooltipWithComponent Component={<DragButton><Grab /></DragButton>} />
                                 <Options>
                                     {/* DragOption = Option */}
                                     <DragOption><Comment />댓글</DragOption>
@@ -310,29 +201,28 @@ const RichEditor = () => {
                                 </Options>
                         </SelectProvider></Draggable>
                     </ActionTool>: null}
-                    {/* 카드 선택 */}
-                    <Card><CardSelector ref={el => {
+                    {/* Content 선택 */}
+                    <Card><ContentSelector ref={el => {
                         if (el) {
-                            cardRefs.current[card.id] = el
+                            contentRefs.current[content.id] = el
                         } else { // 언마운트시 실행된다는데 인 필요
-                            delete cardRefs.current[card.id]
+                            delete contentRefs.current[content.id]
                         }
-                    }} mode={card.mode} data={card.data}
+                    }} mode={content.mode} data={content.data}
                     /></Card>
                 </DraggableCard>
                 {/*/!* 카드 나누는 기준 + 카드 추가 *!/*/}
-                {/*<CardDivider>*/}
-                {/*    {toIndex === index? <CardDividerLine/>: null}*/}
-                {/*    <TooltipWithComponent Component={<PlusButton {...handleAddCard(index)}><Plus /></PlusButton>} summary={editorPlusBtn} />*/}
-                {/*</CardDivider>*/}
-                {/*/!* 드롭 영역 상|하 (드래그 상태!==-1 && 현재 드롭할 곳이 아님 === -1) *!/*/}
-                {/*<DropZone data-select-index={index-1}><TopDropZone className={(fromIndex !== -1) && (toIndex === -1)? 'not-allowed':''} /></DropZone>*/}
-                {/*<DropZone data-select-index={index}><BottomDropZone className={(fromIndex !== -1)  && (toIndex === -1)? 'not-allowed':''} /></DropZone>*/}
+                <CardDivider>
+                    {toIndex === index? <CardDividerLine/>: null}
+                    <TooltipWithComponent Component={<PlusButton><Plus /></PlusButton>} />
+                </CardDivider>
+                {/* 드롭 영역 상|하 (드래그 상태!==-1 && 현재 드롭할 곳이 아님 === -1) */}
+                <DropZone data-select-index={index-1}><TopDropZone className={(fromIndex !== -1) && (toIndex === -1)? 'not-allowed':''} /></DropZone>
+                <DropZone data-select-index={index}><BottomDropZone className={(fromIndex !== -1)  && (toIndex === -1)? 'not-allowed':''} /></DropZone>
             </Section>)
         })}
         {/*{isTooltip? <TextToolbar />:null}*/}
-    {/*</Container></DragDropProvider>)*/}
-    </Container>)
+    </RichEditorContainer></DragDropProvider>)
 }
 
 export default RichEditor
