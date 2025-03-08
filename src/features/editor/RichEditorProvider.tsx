@@ -1,11 +1,11 @@
 import {ReactNode} from "react";
-import CardStoreProvider from "./provider/CardStoreProvider.tsx";
-import CardHistoryProvider from "./provider/CardHistoryProvider.tsx";
+import ContentStoreProvider from "./provider/ContentStoreProvider.tsx";
+import ContentHistoryProvider from "./provider/ContentHistoryProvider.tsx";
 
 const RichEditorProvider = ({children}: {children: ReactNode}) => {
-    return (<CardStoreProvider><CardHistoryProvider>
+    return (<ContentStoreProvider><ContentHistoryProvider>
         {children}
-    </CardHistoryProvider></CardStoreProvider>)
+    </ContentHistoryProvider></ContentStoreProvider>)
 }
 
 export default RichEditorProvider
