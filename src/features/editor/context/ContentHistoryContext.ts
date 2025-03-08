@@ -1,22 +1,18 @@
 import {createContext, Dispatch, SetStateAction} from "react";
-import {CursorIndices} from "../../../hook/useCursorManager.ts";
 import {ContentProps} from "../ContentSelector.tsx";
+import {Cursor, Scroll} from "./ContentStoreContext.ts";
 
 export interface UpdateHistoryProps {
-    contents: ContentProps[],
+    contents?: ContentProps[],
     cursor?: Cursor,
-    scroll?: Scroll
+    scroll?: Scroll,
+    contentUpdate?: boolean // setContents(latestContents) 여부
 }
 
 interface ContentHistoryContextType {
     setCurrentEditElement: Dispatch<SetStateAction<HTMLElement|null>>
     updateHistory: (data?: UpdateHistoryProps) => void
     isUndoRedo: boolean
-}
-export type Cursor = CursorIndices & {element: HTMLElement|null} | null
-export type Scroll = {
-    x: number
-    y: number
 }
 
 export interface ContentsData {
