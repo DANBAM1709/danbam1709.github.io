@@ -1,54 +1,41 @@
-import {ReactNode, useCallback, useContext, useEffect, useMemo, useState} from "react";
-import ContentStoreContext from "./ContentStoreContext.ts";
+import {ReactNode, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState} from "react";
+import ContentStoreContext from "../context/ContentStoreContext.ts";
 import useHistoryManager from "../../../hook/useHistoryManager.ts";
-import {ContentProps} from "../ContentSelector.tsx";
 import useCursorManager from "../../../hook/useCursorManager.ts";
-import ContentHistoryContext, {ContentsData, Cursor, Scroll, UpdateHistoryProps} from "./ContentHistoryContext.ts";
+import ContentHistoryContext, {ContentsData, UpdateHistoryProps} from "../context/ContentHistoryContext.ts";
 import isEqual from "fast-deep-equal";
 import {throttle} from "lodash";
 import {eventManager} from "../../../utils/eventManager.ts";
+import GhostContainer from "../../../base-style/GhostContainer.tsx";
 
 const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
-    const {contents: originalContents, setContents, contentRefs} = useContext(ContentStoreContext)
+    const {setContents, getLatestCursor, getLatestContents, getLatestScroll} = useContext(ContentStoreContext)
     const [currentEditElement, setCurrentEditElement] = useState<HTMLElement | null>(null)
     const {trigger, current, undo, redo, updateHistory} = useHistoryManager<ContentsData>()
-    const {setCursorRangeByIndices, getCursorIndices} = useCursorManager()
-
-    // ========= 최신 데이터 가져오는 함수 =========
-    const getLatestCursor = useCallback(():Cursor => {
-        if (!currentEditElement) throw new Error('ContentHistoryProvider: currentEditElement is null')
-        const cursorPos = getCursorIndices(currentEditElement)
-        if (!cursorPos) throw new Error('ContentHistoryProvider: cursorPos is null')
-
-        const {startIndex, endIndex} = cursorPos
-        return {startIndex: startIndex, endIndex: endIndex, element: currentEditElement};
-    }, [currentEditElement, getCursorIndices])
-    const getLatestScroll = useCallback((): Scroll => {
-        return {x: window.scrollX, y: window.scrollY};
-    }, [])
-    const getLatestContents = useCallback(():ContentProps[] => { // 최신 카드 데이터
-        if (!originalContents) throw new Error('ContentHistoryProvider: A problem occurred while fetching the latest cards')
-        return (originalContents.map((content) => ({
-            data: contentRefs.current[content.id]?.getData() ?? content.data,
-            id: content.id,
-            mode: content.mode,
-        })));
-    }, [originalContents, contentRefs]);
+    const {setCursorRangeByIndices} = useCursorManager()
 
     // ========= 업데이트 함수 정의 =========
     const updateHistoryOverride = useCallback((param?: UpdateHistoryProps) => {
-        if (!currentEditElement) return
-        const {contents, cursor=getLatestCursor(), scroll=getLatestScroll()} = param ?? {contents: getLatestContents(), cursor: getLatestCursor(), scroll: getLatestScroll()}
+        const defaultParams = {
+            contents: getLatestContents(),
+            cursor: getLatestCursor(currentEditElement),
+            scroll: getLatestScroll(),
+            contentUpdate: false
+        }
+        const effectiveParams = param ? {...defaultParams, ...param} : defaultParams
+        const {contents, cursor, scroll, contentUpdate} = effectiveParams
+
         let updateData = {
             contents: contents,
             cursor: cursor,
             scroll: scroll
         }
-        if (current && isEqual(contents, current?.contents) && isEqual(cursor, current?.cursor)) {
+        if (current && isEqual(contents, current?.contents) && (isEqual(cursor, current?.cursor) || !cursor)) { // 업데이트 전 기록이 있고 content 가 동일하고 커서 위치가 동일하거나 없다면
             updateData = current
         }
+        if (contentUpdate) setContents(updateData.contents) // blur 인 경우 이걸로 자주 남발하면 커서 위치가 마구잡이로 이동할 거임
         updateHistory(updateData)
-    }, [current, currentEditElement, getLatestContents, getLatestCursor, getLatestScroll, updateHistory])
+    }, [current, currentEditElement, getLatestContents, getLatestCursor, getLatestScroll, setContents, updateHistory])
 
     // ========= undo | redo 이벤트 정의 =========
     const [isFirstUndo, setIsFirstUndo] = useState(true)
@@ -82,13 +69,10 @@ const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
                     isEqualCard = isEqual(latestContents, current?.contents)
                 }
                 if (!isEqualCard) { // 첫 undo 시에만 검증
-                    const cursor = getLatestCursor()
-
                     // 혹시라도 작성 중이 아니라면.. 커서 에러 발생 CardTextArea 를 확인할 것!
-                    if (!cursor) throw new Error('ContentHistoryProvider: Undo operation failed. missing cursor during history update.')
                     if (!latestContents) throw new Error('ContentHistoryProvider: Undo operation failed. missing cards during history update.')
 
-                    updateHistoryOverride({contents: latestContents, cursor: cursor})
+                    updateHistoryOverride({contents: latestContents})
                     setIsUndoRecorded(true) // 인덱스가 변할 때까지 기다릴 필요가 있어서
                     return;
                 }
@@ -116,7 +100,8 @@ const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
 
     // ========= undo | redo 발생하면 =========
     const [canUpdatePosition, setCanUpdatePosition] = useState<boolean>(false) // 랜더링 후 업데이트 position 확인
-    useEffect(() => { // undo | redo 이벤트가 발생하면
+
+    useLayoutEffect(() => { // undo | redo 이벤트가 발생하면
         if (!current) return
 
         setCanUpdatePosition(true)
@@ -131,20 +116,40 @@ const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
         }
     }, [trigger]);
 
-    // ---------- 카드 업뎃 후 랜더링 감지 이벤 ----------
-    useEffect(() => {
-        eventManager.addEventListener('rendered', 'RichEditor', () => {
+    // ---------- Undo | Redo 랜더링 감지 이벤 ----------
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => { // 리랜더링 감지 이벤트
+        if (!containerRef.current) return
+
+        const observer = new MutationObserver(() => {
+            const event = new CustomEvent('rendered')
+            document.dispatchEvent(event) // html 변경시 이벤트
+        });
+
+        observer.observe(containerRef.current, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        });
+
+        return () => observer.disconnect()
+    }, []);
+    useEffect(() => { // Content 가 변경되었을 경우 랜더링 후 커서 등 이동
+        eventManager.addEventListener('rendered', 'ContentHistoryProvider', () => {
             setCanUpdatePosition(false)
             if (!canUpdatePosition || !current?.cursor) return
             const {startIndex, endIndex, element: node} = current.cursor
             setCursorRangeByIndices(node, {startIndex, endIndex})
         })
 
-        return () => eventManager.removeEventListener('rendered', 'RichEditor')
+        return () => eventManager.removeEventListener('rendered', 'ContentHistoryProvider')
     }, [setCursorRangeByIndices, canUpdatePosition, current]);
 
     const value = useMemo(() => ({updateHistory: updateHistoryOverride, setCurrentEditElement, isUndoRedo}), [isUndoRedo, updateHistoryOverride])
-    return (<ContentHistoryContext.Provider value={value}>{children}</ContentHistoryContext.Provider>)
+    return (<ContentHistoryContext.Provider value={value}>
+        <GhostContainer ref={containerRef}>{children}</GhostContainer>
+    </ContentHistoryContext.Provider>)
 }
 
 export default ContentHistoryProvider
