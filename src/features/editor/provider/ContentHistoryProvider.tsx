@@ -18,9 +18,9 @@ const ContentHistoryProvider = ({children}: {children: ReactNode}) => {
     const updateHistoryOverride = useCallback((param?: UpdateHistoryProps) => {
         const defaultParams = {
             contents: getLatestContents(),
-            cursor: getLatestCursor(currentEditElement),
+            cursor: getLatestCursor(currentEditElement), // null 가능
             scroll: getLatestScroll(),
-            contentUpdate: false
+            contentUpdate: false // true 인 경우 setContents
         }
         const effectiveParams = param ? {...defaultParams, ...param} : defaultParams
         const {contents, cursor, scroll, contentUpdate} = effectiveParams

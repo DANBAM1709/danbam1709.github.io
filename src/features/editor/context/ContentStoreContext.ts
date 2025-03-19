@@ -1,5 +1,5 @@
 import {createContext, Dispatch, MutableRefObject, SetStateAction} from "react";
-import {ContentProps} from "../ContentSelector.tsx";
+import {ContentProps} from "../components/ContentSelector.tsx";
 import {CursorIndices} from "../../../hook/useCursorManager.ts";
 
 export type Cursor = CursorIndices & {element: HTMLElement|null} | null

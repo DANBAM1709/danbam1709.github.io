@@ -1,5 +1,5 @@
 import {createContext, Dispatch, SetStateAction} from "react";
-import {ContentProps} from "../ContentSelector.tsx";
+import {ContentProps} from "../components/ContentSelector.tsx";
 import {Cursor, Scroll} from "./ContentStoreContext.ts";
 
 export interface UpdateHistoryProps {

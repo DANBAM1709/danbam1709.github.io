@@ -1,7 +1,7 @@
 import {MouseEvent, useMemo, useState} from "react";
 import useDrop from "../../../dragdrop/useDrop.tsx";
 import {ContentElement} from "../context/ContentStoreContext.ts";
-import {ContentProps} from "../ContentSelector.tsx";
+import {ContentProps} from "../components/ContentSelector.tsx";
 
 /*
 cardRefs: MutableRefObject<(GetDataHTMLElement|null)[]>, <br />

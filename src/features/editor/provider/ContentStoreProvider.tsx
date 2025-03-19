@@ -1,6 +1,6 @@
 import ContentStoreContext, {ContentElement, Cursor, Scroll} from "../context/ContentStoreContext.ts";
 import {ReactNode, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {ContentProps} from "../ContentSelector.tsx";
+import {ContentProps} from "../components/ContentSelector.tsx";
 import useCursorManager from "../../../hook/useCursorManager.ts";
 
 
@@ -11,9 +11,9 @@ const ContentStoreProvider = ({children}: {children: ReactNode}) => {
     const {getCursorIndices} = useCursorManager()
     useEffect(() => {
         setContents([
-            {data: {html: '1'}, id: crypto.randomUUID(), mode: 'basic'},
+            {data: {html: '1'}, id: crypto.randomUUID(), mode: 'title'},
             {data: {html: '2'}, id: crypto.randomUUID(), mode: 'basic'},
-            {data: {html: '3'}, id: crypto.randomUUID(), mode: 'basic'},
+            {data: {html: '3'}, id: crypto.randomUUID(), mode: 'title'},
             {data: {html: '4'}, id: crypto.randomUUID(), mode: 'basic'},
         ])
     }, []);

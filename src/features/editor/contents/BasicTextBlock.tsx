@@ -1,8 +1,8 @@
 import {forwardRef, useImperativeHandle, useRef} from "react";
-import {InheritContentProps} from "../ContentSelector.tsx";
-import RichTextArea from "../widget/RichTextArea.tsx";
+import {InheritContentProps} from "../components/ContentSelector.tsx";
 import {CustomTextAreaElement} from "../../../component/CustomTextArea.tsx";
-import {ContentElement} from "../provider/ContentStoreContext.ts";
+import {ContentElement} from "../context/ContentStoreContext.ts";
+import RichTextWidget from "../widget/RichTextWidget.tsx";
 
 const BasicTextBlock = forwardRef<ContentElement, InheritContentProps>(({data}, ref) => {
     const targetRef = useRef<CustomTextAreaElement|null>(null)
@@ -16,7 +16,7 @@ const BasicTextBlock = forwardRef<ContentElement, InheritContentProps>(({data}, 
         throw new Error('BasicTextBlock ref error!')
     }, []);
 
-    return <RichTextArea content={data} ref={targetRef} />
+    return <RichTextWidget content={data} ref={targetRef} />
 })
 //
 // const BasicCard = forwardRef<GetDataHTMLElement, InheritCardProps>(({data}, ref) => {
