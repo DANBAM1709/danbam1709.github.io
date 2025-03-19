@@ -5,30 +5,29 @@ import {
     Card,
     CardDivider,
     CardDividerLine,
-    DragButton,
     DraggableCard,
-    DragOption,
     PlusButton,
     RichEditorContainer,
     TopDropZone
-} from "./RichEditor.ui.ts";
+} from "./ui/RichEditor.ui.ts";
 import {useCallback, useContext} from "react";
-import Draggable from "../../dragdrop/Draggable.tsx";
-import SelectProvider from "../../select-option/SelectProvider.tsx";
-import Options from "../../select-option/Options.tsx";
-import Comment from '../../assets/svg/comment.svg?react'
-import ColorPicker from '../../assets/svg/color-picker.svg?react'
-import Copy from '../../assets/svg/copy.svg?react'
 import Plus from '../../assets/svg/plus.svg?react'
-import Grab from '../../assets/svg/grab.svg?react'
-import Swap from '../../assets/svg/swap.svg?react'
 import ContentStoreContext from "./context/ContentStoreContext.ts";
-import ContentSelector, {ContentProps} from "./ContentSelector.tsx";
+import ContentSelector, {ContentProps, FONT_SIZE} from "./components/ContentSelector.tsx";
 import DragDropProvider from "../../dragdrop/DragDropProvider.tsx";
 import TooltipWithComponent from "../../component/TooltipWithComponent.tsx";
 import DropZone from "../../dragdrop/DropZone.tsx";
 import useContentDragDrop from "./hook/useContentDragDrop.ts";
 import ContentHistoryContext from "./context/ContentHistoryContext.ts";
+import Copy from '../../assets/svg/copy.svg?react'
+import Swap from '../../assets/svg/swap.svg?react'
+import Grab from '../../assets/svg/grab.svg?react'
+import Comment from '../../assets/svg/comment.svg?react'
+import Draggable from "../../dragdrop/Draggable.tsx";
+import {DragBtn, DragOption} from "./ui/ContentDragBtn.ui.ts";
+import Options from "../../select-option/Options.tsx";
+import SelectProvider from "../../select-option/SelectProvider.tsx";
+import FilmStrip from "./components/FilmStrip.tsx";
 
 //
 // const RichEditor = () => {
@@ -36,8 +35,6 @@ import ContentHistoryContext from "./context/ContentHistoryContext.ts";
 //     const {editorDragBtn, editorPlusBtn} = useTooltip()
 //     // const {state: {isTooltip}} = useRichEditorContext()
 //
-//     // ------ 드래그 & 드랍 ------
-//     const {handleDrop, fromIndex, toIndex} = useCardDragDrop(cards, cardRefs.current, updateHistoryWithLatestData)
 //
 //     // ---------- history 이벤트 핸들러 ----------
 //     useEffect(() => setCurrentRecord(current), [current]); // 위에서 current 데이터 사용하기 위함
@@ -175,32 +172,38 @@ const RichEditor = () => {
         updateHistory({contents: updateContents, contentUpdate: true})
     }, [updateHistory])
 
+    // 드래그 & 드랍
     const {handleDrop, fromIndex, toIndex} = useContentDragDrop(contents, contentRefs.current, updateHistoryWithLatestData)
 
     return (<DragDropProvider useDrop={handleDrop}><RichEditorContainer>
         {contents.map((content, index) => {
             return (<Section key={content.id} data-lastblock={contents.length === index+1? 'true': undefined}>
-                <DraggableCard className={index===0? 'editor-title':''}>
+                <DraggableCard className={index===0? 'editor-title':''} style={{fontSize: FONT_SIZE[content.mode]}}>
                     {/* 제목이면 드래그 버튼 제외 */}
-                    {index !== 0? <ActionTool>
-                        <Draggable data-target-index={index}><SelectProvider>
-                                {/* DragBtn = SelectBtn */}
-                                <TooltipWithComponent Component={<DragButton><Grab /></DragButton>} />
-                                <Options>
-                                    {/* DragOption = Option */}
-                                    <DragOption><Comment />댓글</DragOption>
-                                    {/*<DragOption {...handleDeleteCard(index)}><Trash />삭제</DragOption>*/}
-                                    <DragOption><Copy />복제</DragOption>
-                                    <DragOption><Swap />전환</DragOption>
-                                    <SelectProvider>
-                                        <DragButton><ColorPicker />색 진심 뭐지</DragButton>
-                                        <Options>
-                                            호엥
-                                        </Options>
-                                    </SelectProvider>
-                                </Options>
-                        </SelectProvider></Draggable>
-                    </ActionTool>: null}
+                    {index !== 0?
+                        <ActionTool>
+                            <Draggable data-target-index={index}>
+                                {/* Select-Options Outer */}
+                                <SelectProvider>
+                                    {/* DragBtn = SelectBtn */}
+                                    <TooltipWithComponent Component={<DragBtn><Grab /></DragBtn>} />
+                                    <Options>
+                                        {/* DragOption = Option */}
+                                        <DragOption><Comment />댓글</DragOption>
+                                        {/*<DragOption {...handleDeleteCard(index)}><Trash />삭제</DragOption>*/}
+                                        <DragOption><Copy />복제</DragOption>
+                                        <DragOption><Swap />전환</DragOption>
+                                        {/* Select-Options Inner */}
+                                        <SelectProvider>
+                                            {/*<DragButton><ColorPicker />색 진심 뭐지</DragButton>*/}
+                                            <Options>
+                                                호엥
+                                            </Options>
+                                        </SelectProvider>
+                                    </Options>
+                                </SelectProvider>
+                            </Draggable>
+                        </ActionTool>: null}
                     {/* Content 선택 */}
                     <Card><ContentSelector ref={el => {
                         if (el) {
@@ -222,6 +225,7 @@ const RichEditor = () => {
             </Section>)
         })}
         {/*{isTooltip? <TextToolbar />:null}*/}
+        <FilmStrip />
     </RichEditorContainer></DragDropProvider>)
 }
 
